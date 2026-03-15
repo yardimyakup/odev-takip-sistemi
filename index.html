@@ -6,6 +6,8 @@
 <title>Vefa Poyraz A.L. — Ödev Takip</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="icon" href="Adsız tasarım.png" type="image/png">
 <style>
 :root {
   --red: #e02020;
@@ -520,6 +522,118 @@ body { font-family: var(--font-main); background:var(--bg); color:var(--text); m
 .tbb-title { font-size: 14.5px; font-weight: 800; color: var(--text); }
 .tbb-sub { font-size: 11px; font-weight: 600; color: var(--gray-400); margin-top: 2px; }
 .tbb-arrow { color: var(--gray-300); font-weight: 900; font-size: 16px; }
+
+/* Öğrenci Numarası Rozeti */
+.s-no { 
+  font-size: 11.5px; 
+  font-weight: 800; 
+  color: var(--gray-500); 
+  min-width: 38px; 
+  text-align: center; 
+  font-family: var(--font-mono); 
+  background: var(--gray-100); 
+  padding: 4px 6px; 
+  border-radius: 6px; 
+  border: 1px solid var(--border); 
+  letter-spacing: -0.3px;
+  transition: all 0.18s;
+}
+/* Artı veya Eksi durumunda numaranın rengini de uyduruyoruz */
+.s-row.done .s-no { background: #fff; border-color: var(--green-border); color: var(--green); }
+.s-row.miss .s-no { background: #fff; border-color: var(--red-score-border); color: var(--red-score); }
+
+.sc-excel { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+
+.asgn-hero {
+  background:linear-gradient(135deg,var(--red) 0%,#c41c1c 100%);
+  padding:14px 16px 18px; color:#fff; position:relative; overflow:hidden;
+  display: flex; /* İçeriği yan yana dizmek için eklendi */
+  justify-content: space-between; /* Sağa ve sola yaslamak için eklendi */
+  align-items: center; /* Dikeyde ortalamak için eklendi */
+}
+
+/* Kırmızı alana özel şeffaf buton tasarımı */
+.hero-excel-btn {
+  position: relative; z-index: 2;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-main);
+  backdrop-filter: blur(4px);
+}
+.hero-excel-btn:active {
+  transform: scale(0.93);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Düzenle Butonu ve Modal İçi Tasarımları */
+.sc-edit { background: var(--gray-100); color: var(--gray-700); border: 1px solid var(--gray-300); }
+
+.edit-section { background: var(--gray-50); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 16px; margin-bottom: 16px; }
+.edit-section-title { font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.edit-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.edit-row .lf-input { margin-bottom: 0; padding: 10px 12px; font-size: 13px; }
+
+/* ─── KARANLIK MOD (DARK THEME) ─── */
+body.dark-theme {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --border: #334155;
+  --border-soft: #1e293b;
+  --gray-50: #1e293b;
+  --gray-100: #334155;
+  --gray-200: #475569;
+  --gray-300: #64748b;
+  --gray-400: #94a3b8;
+  --gray-500: #cbd5e1;
+  --gray-700: #f1f5f9;
+  --text: #f8fafc;
+  --text-soft: #94a3b8;
+  --red-light: #450a0a;
+  --red-mid: #7f1d1d;
+  --green-light: #064e3b;
+  --green-border: #047857;
+  --red-score-bg: #450a0a;
+  --red-score-border: #7f1d1d;
+}
+
+/* Hardcoded #fff renkleri karanlık karta dönüştür */
+body.dark-theme .topbar, body.dark-theme .stat-card, body.dark-theme .class-card, 
+body.dark-theme .no-classes, body.dark-theme .sheet, body.dark-theme .lang-calc-sheet, 
+body.dark-theme .hw-section, body.dark-theme .list-bar, body.dark-theme .s-row, 
+body.dark-theme .save-bar, body.dark-theme .quick-stats, body.dark-theme .tool-banner-btn, 
+body.dark-theme .score-box, body.dark-theme .login-box {
+  background: var(--card);
+}
+
+/* Input ve arka plan düzenlemeleri */
+body.dark-theme .lf-input, body.dark-theme .lf-select, body.dark-theme .hw-add-row input, 
+body.dark-theme .note-textarea, body.dark-theme .edit-section {
+  background: #0f172a; color: var(--text);
+}
+body.dark-theme .multiplier-bar {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-bottom: 1px solid var(--border);
+}
+body.dark-theme .mult-spinner, body.dark-theme .s-note-btn, body.dark-theme .s-score-mini-btn {
+  background: #0f172a;
+}
+body.dark-theme .sc-edit { background: #334155; color: #f8fafc; border-color: #475569; }
+body.dark-theme .sc-excel { background: #0c4a6e; color: #bae6fd; border-color: #0284c7; }
+
+/* Tema Değiştirme Butonu Stili */
+.theme-btn {
+  background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px 6px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; color: var(--text); outline: none;
+}
+.theme-btn:active { transform: scale(0.85); background: var(--gray-100); }
 </style>
 </head>
 <body>
@@ -599,6 +713,8 @@ body { font-family: var(--font-main); background:var(--bg); color:var(--text); m
       </div>
     </div>
     <div class="topbar-right">
+      <button id="theme-toggle" class="theme-btn theme-toggle-icon" onclick="toggleTheme()">🌙</button>
+      
       <div class="tb-user-pill" onclick="doLogout()">
         <div class="tb-avatar" id="dash-avatar">?</div>
         <div class="tb-name" id="dash-name">Öğretmen</div>
@@ -656,19 +772,29 @@ body { font-family: var(--font-main); background:var(--bg); color:var(--text); m
 
 <!-- ══ ASSIGNMENT SCREEN ══ -->
 <div id="screen-assignment" class="screen">
-  <div class="topbar">
+<div class="topbar">
     <button class="back-btn" onclick="goBack()">←</button>
     <div style="flex:1;margin:0 10px;">
       <div class="topbar-text" id="asgn-topbar-name">Sınıf</div>
       <div class="topbar-sub" id="asgn-topbar-teacher"></div>
     </div>
-    <div class="tb-avatar" id="asgn-avatar" style="width:32px;height:32px;font-size:11px;">?</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="theme-btn theme-toggle-icon" onclick="toggleTheme()">🌙</button>
+      <div class="tb-avatar" id="asgn-avatar" style="width:32px;height:32px;font-size:11px;">?</div>
+    </div>
   </div>
 
   <div style="flex:1;overflow-y:auto;padding-bottom:90px;" id="asgn-scroll">
-    <div class="asgn-hero">
-      <div class="asgn-classname" id="asgn-class-label">—</div>
-      <div class="asgn-teacher" id="asgn-teacher-label">—</div>
+  <div class="asgn-hero">
+      <div style="position:relative; z-index:2;">
+        <div class="asgn-classname" id="asgn-class-label">—</div>
+        <div class="asgn-teacher" id="asgn-teacher-label">—</div>
+      </div>
+      
+      <div style="display:flex; gap:6px; position:relative; z-index:2;">
+        <button class="hero-excel-btn" onclick="openStudentEdit()" title="Sınıfı Düzenle">⚙️ Düzenle</button>
+        <button class="hero-excel-btn" onclick="downloadExcel()" title="Excel İndir">📥 Excel</button>
+      </div>
     </div>
 
     <!-- Ödev Bölümü -->
@@ -848,11 +974,57 @@ body { font-family: var(--font-main); background:var(--bg); color:var(--text); m
   </div>
 </div>
 
+
+<div class="overlay" id="overlay-student-edit">
+  <div class="sheet">
+    <div class="sheet-title">
+      ⚙️ Sınıf Listesini Düzenle
+      <button class="sheet-close" onclick="closeOverlay('overlay-student-edit')">✕</button>
+    </div>
+    <div style="font-size:12px; font-weight:600; color:var(--gray-500); margin-bottom:16px;" id="edit-se-class">—</div>
+
+    <div class="edit-section">
+      <div class="edit-section-title"><span>➕</span> Yeni Öğrenci Ekle (Nakil vb.)</div>
+      <div class="edit-row">
+        <input class="lf-input" id="se-add-no" type="number" placeholder="Öğrenci No" style="width: 100px; flex-shrink: 0;">
+        <input class="lf-input" id="se-add-ad" type="text" placeholder="Ad">
+        <input class="lf-input" id="se-add-soyad" type="text" placeholder="Soyad">
+      </div>
+      <button class="btn-full btn-full-red" id="btn-add-student" onclick="addStudent()" style="padding: 10px;">Öğrenci Ekle ✓</button>
+    </div>
+
+    <div class="edit-section" style="margin-bottom:0; border-color: var(--red-score-border); background: var(--red-score-bg);">
+      <div class="edit-section-title" style="color: var(--red-score);"><span>🗑️</span> Öğrenci Sil</div>
+      <div class="edit-row">
+        <input class="lf-input" id="se-del-no" type="number" placeholder="Silinecek Öğrenci No">
+        <button class="btn-full" id="btn-del-student" onclick="deleteStudent()" style="background: var(--red-score); color:#fff; padding: 10px; width: 120px; flex-shrink: 0;">Sil ✕</button>
+      </div>
+      <div style="font-size:10px; color:var(--red-score); font-weight:600; margin-top:4px;">Geri alınamaz, numarayı doğru girdiğinizden emin olun.</div>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="overlay" id="overlay-delete-confirm" style="align-items: center;">
+  <div class="sheet" style="border-radius: var(--r-xl); max-width: 320px; animation: popIn 0.2s ease; text-align: center;">
+    <div style="font-size: 44px; margin-bottom: 12px;">🗑️</div>
+    <div class="sheet-title" style="justify-content: center; margin-bottom: 8px;">Emin misiniz?</div>
+    <div style="font-size:13.5px; font-weight:600; color:var(--gray-500); margin-bottom:24px; line-height:1.5;" id="delete-confirm-text">
+      Öğrenci veritabanından kalıcı olarak silinecek.
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-delete-confirm')">İptal</button>
+      <button class="btn-full" style="background: var(--red-score); color: #fff; box-shadow: 0 4px 14px rgba(220,38,38,0.3);" onclick="executeDeleteStudent()">Evet, Sil</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════
 // CONFIG
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbweDpwXpHYW-o8-7b41EVeQ3spnHDT06HJ8_EedPD8LP_vTGeeA88Vkd7YKCL34PIfC/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzI6tq7P8cIc8988WyVEgPEgYmY95R1HWcYCIEtFg_mqp2G1bD6qvLOZlVgay67TZmj/exec";
 
 // ════════════════════════════════
 // NOTIFICATION
@@ -1127,6 +1299,54 @@ function calcGrade() {
   gradeEl.style.display = 'inline-block';
 }
 
+
+function downloadExcel() {
+  if (!state.currentClass || !state.currentClassStudents || state.currentClassStudents.length === 0) {
+    notify('İndirilecek öğrenci bulunamadı.', 'error');
+    return;
+  }
+
+  // Excel'in Türkçe karakterleri (Ş, Ğ, İ vb.) bozmaması için başına BOM (\ufeff) ekliyoruz
+  let csvContent = "\ufeff"; 
+  
+  // Başlık satırı (Türkiye bölge ayarlarında Excel noktalı virgül (;) ile sütun ayırır)
+  csvContent += "Ögrenci No;Ad;Soyad;Toplam Arti;Toplam Eksi;Ozel Not\n";
+
+  const notes = state.studentNotes[state.currentClass.id] || {};
+
+  state.currentClassStudents.forEach(s => {
+    let totalPlus = 0;
+    let totalMinus = 0;
+
+    // Tüm ödev geçmişini tarayıp bu öğrencinin toplam artı/eksilerini buluyoruz
+    Object.keys(state.statuses).forEach(hwId => {
+      if (state.statuses[hwId][s.no] === 'plus') totalPlus++;
+      if (state.statuses[hwId][s.no] === 'minus') totalMinus++;
+    });
+
+    // Varsa notunu alıyoruz (Excel satırını bozmaması için içindeki alt satıra geçişleri boşlukla değiştiriyoruz)
+    const studentNote = notes[s.no] ? notes[s.no].replace(/\n/g, ' ') : '';
+
+    // Veriyi CSV formatında satıra ekliyoruz
+    csvContent += `${s.no || ''};${s.ad};${s.soyad};${totalPlus};${totalMinus};${studentNote}\n`;
+  });
+
+  // Dosyayı oluşturup indirmeyi tetikliyoruz
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  // Dosya adını sınıf adı ve bugünün tarihi yapıyoruz (Örn: 9A_Rapor_15-03-2026.csv)
+  const safeDate = today().replace(/\./g, '-');
+  link.setAttribute("download", `${state.currentClass.name}_Rapor_${safeDate}.csv`);
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  notify('Excel raporu indirildi! 📊', 'success');
+}
+
 function renderDashboard() {
   const initials = state.teacher.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('dash-avatar').textContent = initials;
@@ -1379,7 +1599,7 @@ function renderStudentArea() {
   const activeId = state.currentHwId || '_general';
   const hwStatuses = state.statuses[activeId] || {};
 
-  area.innerHTML = `
+area.innerHTML = `
     <div class="list-bar">
       <div class="list-bar-info"><span>${state.currentClass.name}</span> · ${students.length} öğrenci</div>
       <div class="shortcut-wrap">
@@ -1390,6 +1610,87 @@ function renderStudentArea() {
     <div class="student-list">
       ${students.map(s => renderSRow(s, hwStatuses[s.no] || null)).join('')}
     </div>`;
+}
+
+
+// ════════════════════════════════
+// MANUEL ÖĞRENCİ EKLE/SİL
+// ════════════════════════════════
+function openStudentEdit() {
+  document.getElementById('edit-se-class').textContent = state.currentClass.name + ' Sınıfı';
+  // Kutuları temizle
+  document.getElementById('se-add-no').value = '';
+  document.getElementById('se-add-ad').value = '';
+  document.getElementById('se-add-soyad').value = '';
+  document.getElementById('se-del-no').value = '';
+  openOverlay('overlay-student-edit');
+}
+
+async function addStudent() {
+  const no = document.getElementById('se-add-no').value.trim();
+  const ad = document.getElementById('se-add-ad').value.trim().toUpperCase();
+  const soyad = document.getElementById('se-add-soyad').value.trim().toUpperCase();
+
+  if (!no || !ad || !soyad) { notify('Lütfen tüm alanları doldurun.', 'error'); return; }
+
+  const btn = document.getElementById('btn-add-student');
+  btn.disabled = true; btn.textContent = 'Ekleniyor...';
+
+  try {
+    await fetch(API_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'addStudent', className: state.currentClass.name, no, ad, soyad })
+    });
+    notify('Öğrenci eklendi! Liste yenileniyor...', 'success');
+    closeOverlay('overlay-student-edit');
+    // Sayfayı (öğrenci listesini) baştan yükle
+    openClass(state.currentClass.id);
+  } catch(e) {
+    notify('Bir hata oluştu.', 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Öğrenci Ekle ✓';
+}
+
+function deleteStudent() {
+  const no = document.getElementById('se-del-no').value.trim();
+  if (!no) { notify('Silinecek numarayı girin.', 'error'); return; }
+  
+  // Tarayıcı popup'ı yerine bizim şık modalı metnini güncelleyip açıyoruz
+  document.getElementById('delete-confirm-text').innerHTML = `<strong style="color:var(--text); font-size:15px;">${no}</strong> numaralı öğrenci kalıcı olarak silinecek. Onaylıyor musunuz?`;
+  openOverlay('overlay-delete-confirm');
+}
+
+async function executeDeleteStudent() {
+  const no = document.getElementById('se-del-no').value.trim();
+  
+  // Önce onay modalını kapatıyoruz
+  closeOverlay('overlay-delete-confirm');
+
+  const btn = document.getElementById('btn-del-student');
+  btn.disabled = true; btn.textContent = 'Siliniyor...';
+
+  try {
+    await fetch(API_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deleteStudent', className: state.currentClass.name, no })
+    });
+    
+    notify('Öğrenci silindi! Liste yenileniyor...', 'success');
+    closeOverlay('overlay-student-edit'); // Düzenleme menüsünü de kapat
+    
+    // Google Sheets'in veriyi silmesi için bekleme süresi
+    setTimeout(() => {
+      openClass(state.currentClass.id);
+      btn.disabled = false; 
+      btn.textContent = 'Sil ✕';
+    }, 1500);
+
+  } catch(e) {
+    notify('Bir hata oluştu.', 'error');
+    btn.disabled = false; btn.textContent = 'Sil ✕';
+  }
 }
 
 function renderSRow(student, status) {
@@ -1416,7 +1717,7 @@ function renderSRow(student, status) {
 
   return `
     <div class="s-row ${status === 'plus' ? 'done' : status === 'minus' ? 'miss' : ''}" id="row-${no}">
-      <span class="s-no">${student.sno || ''}</span>
+      <div class="s-no">${student.no || '?'}</div>
       <div class="s-name-col">
         <div class="s-name">${student.ad} ${student.soyad}</div>
         ${historyHtml}
@@ -1694,6 +1995,28 @@ document.getElementById('hw-input').addEventListener('keydown', e => { if(e.key=
 // UTILS
 // ════════════════════════════════
 function today() { return new Date().toLocaleDateString('tr-TR'); }
+
+
+// ════════════════════════════════
+// DARK MODE YÖNETİMİ
+// ════════════════════════════════
+function initTheme() {
+  // Hafızada ayar var mı kontrol et, yoksa cihazın sistem ayarına (aydınlık/karanlık) bak
+  const savedTheme = localStorage.getItem('vpAL2_theme');
+  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.body.classList.add('dark-theme');
+    document.getElementById('theme-toggle').textContent = '☀️';
+  }
+}
+
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark-theme');
+  document.getElementById('theme-toggle').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('vpAL2_theme', isDark ? 'dark' : 'light');
+}
+
+// Uygulama başlarken temayı yükle
+initTheme();
 </script>
 </body>
 </html>
