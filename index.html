@@ -892,7 +892,7 @@ body.dark .logo-dark { display: block !important; }
 <div class="topbar">
     <div class="topbar-brand">
      <div class="topbar-logo" style="background: transparent; box-shadow: none;">
-        <img class="logo-light" src="./logo1.png" alt="VP" style="width: 100%; height: 100%; object-fit: contain;">
+        <img class="logo-light" src="./logo2.png" alt="VP" style="width: 100%; height: 100%; object-fit: contain;">
         <img class="logo-dark" src="./logo-dark.png" alt="VP" style="width: 100%; height: 100%; object-fit: contain; display: none;">
       </div>
       <div>
@@ -1325,36 +1325,53 @@ var state = {
 // ════════════════════════════════
 // PERSISTENCE
 // ════════════════════════════════
+// ════════════════════════════════
+// PERSISTENCE (GÜNCELLENDİ: Verileri Öğretmene Özel Ayırır)
+// ════════════════════════════════
 function persist() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      users:      state.users,
-      classes:    state.classes,
-      homeworks:  state.homeworks,
-      statuses:   state.statuses,
-      notes:      state.notes,
-      multScores: state.multScores || {}
-    }));
+    localStorage.setItem(STORAGE_KEY + '_users', JSON.stringify(state.users));
+
+    // Eğer öğretmen giriş yapmışsa, tüm sınıf ve not verilerini SADECE ONUN ADINA kaydediyoruz
+    if (state.teacher) {
+      var teacherKey = STORAGE_KEY + '_' + state.teacher.replace(/\s+/g, '');
+      localStorage.setItem(teacherKey, JSON.stringify({
+        classes:    state.classes,
+        homeworks:  state.homeworks,
+        statuses:   state.statuses,
+        notes:      state.notes,
+        multScores: state.multScores || {}
+      }));
+    }
   } catch(e) { console.warn('LocalStorage write error:', e); }
 }
 
 function hydrate() {
   try {
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      var d = JSON.parse(raw);
-      state.users      = d.users      || {};
-      state.classes    = d.classes    || [];
-      state.homeworks  = d.homeworks  || {};
-      state.statuses   = d.statuses   || {};
-      state.notes      = d.notes      || {};
-      state.multScores = d.multScores || {};
-    }
     state.teacher = localStorage.getItem(STORAGE_KEY + '_teacher') || null;
     state.branch  = localStorage.getItem(STORAGE_KEY + '_branch')  || null;
-   if (!state.multScores) state.multScores = {};
+
+    var usersRaw = localStorage.getItem(STORAGE_KEY + '_users');
+    if (usersRaw) state.users = JSON.parse(usersRaw);
+
+    // Öğretmen varsa sadece o öğretmenin kutusunu aç
+    if (state.teacher) {
+      var teacherKey = STORAGE_KEY + '_' + state.teacher.replace(/\s+/g, '');
+      var raw = localStorage.getItem(teacherKey);
+      if (raw) {
+        var d = JSON.parse(raw);
+        state.classes    = d.classes    || [];
+        state.homeworks  = d.homeworks  || {};
+        state.statuses   = d.statuses   || {};
+        state.notes      = d.notes      || {};
+        state.multScores = d.multScores || {};
+      } else {
+        // Öğretmen o cihazda ilk kez giriyorsa hafızayı tertemiz yap
+        state.classes = []; state.homeworks = {}; state.statuses = {}; state.notes = {}; state.multScores = {};
+      }
+    }
   } catch(e) { 
-    state.multScores = {}; // Hata durumunda bile
+    state.multScores = {}; 
   }
 }
 
@@ -1460,11 +1477,15 @@ async function doLogin() {
     var url = API_URL + '?action=login&user=' + encodeURIComponent(name) + '&pass=' + encodeURIComponent(pass);
     var resp = await fetch(url);
     var result = await resp.json();
-    if (result.success) {
+if (result.success) {
       state.teacher = result.fullName;
       state.branch  = result.branch || 'Diger';
       localStorage.setItem(STORAGE_KEY + '_teacher', state.teacher);
       localStorage.setItem(STORAGE_KEY + '_branch',  state.branch);
+      
+      // EKLENEN SATIR: Giriş yapan öğretmenin kendi verilerini yükle
+      hydrate(); 
+      
       notify('Giriş başarılı! Hoş geldiniz 🎉', 'success');
       showDashboard();
     } else {
@@ -1519,17 +1540,20 @@ async function doRegister() {
     console.log('Sunucu cevabı:', resultText);
 
     // Eğer Google Apps Script "Başarılı" döndürdüyse
+ // Eğer Google Apps Script "Başarılı" döndürdüyse
     if (resultText.includes("Başarılı")) {
       
-      // Local storage'a kaydet (Uygulamanın çalışması için gerekli)
       var key = fullName.toLowerCase();
       state.users[key] = { pass, fullName, branch };
-      persist();
       
       state.teacher = fullName;
       state.branch  = branch;
       localStorage.setItem(STORAGE_KEY + '_teacher', state.teacher);
       localStorage.setItem(STORAGE_KEY + '_branch',  state.branch);
+      
+      // EKLENEN SATIR: Yeni hesap olduğu için başkasının verisi görünmesin diye sıfırla
+      state.classes = []; state.homeworks = {}; state.statuses = {}; state.notes = {}; state.multScores = {};
+      persist();
       
       notify('Kayıt başarılı! Hoş geldiniz 🎉', 'success');
       showDashboard();
@@ -1557,6 +1581,10 @@ function confirmLogout() {
   state.branch  = null;
   localStorage.removeItem(STORAGE_KEY + '_teacher');
   localStorage.removeItem(STORAGE_KEY + '_branch');
+  
+  // EKLENEN SATIR: Çıkış yapınca ekranda kalan verileri temizle ki başkası girmeden görmesin
+  state.classes = []; state.homeworks = {}; state.statuses = {}; state.notes = {}; state.multScores = {};
+  
   closeOverlay('overlay-logout');
   document.getElementById('li-pass').value = '';
   showScreen('screen-login');
