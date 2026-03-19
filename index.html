@@ -1413,7 +1413,7 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
 // ════════════════════════════════
 // CONSTANTS
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbygHKj5eYBOv4izIx87WqegcJn6IuMRh4mjRxfe-9d1n_aR0qlrLl1xlGsn8ER9_umA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzRQsl6lIfD74lBWIYUdxGJxdSOEDpE5MQ8izfy_URLmaC7jW490Tkg-8x-Qzowq2At/exec";
 const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
 const BRANCH_LABELS = { Edebiyat:'Türk Dili ve Edebiyatı', Ingilizce:'İngilizce', Fransizca:'Fransızca' };
 const STORAGE_KEY = 'vpAL3';
@@ -1501,17 +1501,23 @@ hydrate();
 // ════════════════════════════════
 // BOOT (GÜNCELLENDİ: Anında Açılır, Yenilemede Atmaz)
 // ════════════════════════════════
+// ════════════════════════════════
+// BOOT (GÜNCELLENDİ: Önce Bulutu Bekle, Sonra Ekranı Aç)
+// ════════════════════════════════
 (async function boot() {
   applyTheme();
   
   if (state.teacher) {
-    // 1. GİRİŞ EKRANINI ANINDA GİZLE (Saniyelik görünmeyi engeller)
+    // 1. GİRİŞ EKRANINI ANINDA GİZLE
     document.getElementById('screen-login').classList.remove('active');
+    
+    // 2. DÜZELTME: Ekranı açmadan ÖNCE buluttaki güncel notları zorunlu olarak bekle!
+    await loadTeacherProfile(state.teacher);
     
     var lastScreen = localStorage.getItem('vpAL3_lastScreen');
     var lastClassId = localStorage.getItem('vpAL3_lastClassId');
     
-    // 2. Bekletmeden direkt son kaldığı ekranı aç!
+    // 3. Bulut tamamen indikten sonra son kaldığı ekranı aç
     if ((lastScreen === 'screen-assignment' || lastScreen === 'screen-analytics') && lastClassId) {
        var cls = state.classes.find(c => c.id === lastClassId);
        if (cls) {
@@ -1525,14 +1531,8 @@ hydrate();
        }
     } else {
        showDashboard();
+       renderDashboard(); // Dashboard açıksa render et
     }
-    
-    // 3. Arka planda verileri tazele
-    await loadTeacherProfile(state.teacher);
-    if (document.getElementById('screen-dashboard').classList.contains('active')) {
-       renderDashboard();
-    }
-    
   } else {
     showScreen('screen-login');
   }
@@ -1798,7 +1798,7 @@ function openAddClass() {
   openOverlay('overlay-class');
 }
 
-function saveClass() {
+async function saveClass() {
   var raw = document.getElementById('new-class-input').value.trim();
   var labelRaw = document.getElementById('new-class-label').value.trim();
   var listLabel = labelRaw ? labelRaw : "İsimsiz Liste";
@@ -1817,9 +1817,14 @@ function saveClass() {
   state.classes.push(newClass);
   state.homeworks[newClass.id] = [];
   persist();
+  // DÜZELTME: Kaydetmeden önce başka cihazdan girilen veri varsa onu ezmemek için bulutu tazele
+  
   closeOverlay('overlay-class');
   renderDashboard();
-  syncTeacherProfile();
+  
+  // YENİ: Buluta kaydedilmesini zorunlu olarak bekle (Yarım kalmasını önler)
+  notify('Buluta kaydediliyor... ⏳', 'info', 1500);
+  await syncTeacherProfile();
   notify(name + ' sınıfı eklendi! 🎉', 'success');
 }
 
@@ -1827,13 +1832,16 @@ function deleteClass(id, ev) {
   ev.stopPropagation();
   var c = state.classes.find(x => x.id === id);
   if (!c) return;
-  showCustomConfirm('Sınıfı Sil', '<b>' + c.name + '</b> sınıfını silmek istediğinize emin misiniz?<br><span style="font-size:11px; color:#e02020;">Bu işlem geri alınamaz!</span>', '🗑️', function() {
+  showCustomConfirm('Sınıfı Sil', '<b>' + c.name + '</b> sınıfını silmek istediğinize emin misiniz?<br><span style="font-size:11px; color:#e02020;">Bu işlem geri alınamaz!</span>', '🗑️', async function() {
       state.classes = state.classes.filter(x => x.id !== id);
       delete state.homeworks[id];
       persist();
       renderDashboard();
-      syncTeacherProfile();
-      notify('Sınıf silindi.', 'info');
+      
+      // YENİ: Silme işleminin buluta işlenmesini zorla
+      notify('Sınıf siliniyor, bulut güncelleniyor... ⏳', 'info', 1500);
+      await syncTeacherProfile();
+      notify('Sınıf kalıcı olarak silindi.', 'info');
   });
 }
 
@@ -1871,13 +1879,12 @@ async function openClass(classId) {
   var area = document.getElementById('student-area');
   area.innerHTML = '<div class="empty-state"><span class="spin" style="width:32px;height:32px;border-width:3px;margin:0 auto 12px;display:block;"></span><div class="empty-text">Veriler hızla çekiliyor... ⚡</div></div>';
 
-  try {
+try {
+    // 1. DÜZELTME: Artık yavaşlatan ve zombi notlar getiren "getRecords" komutunu sildik! 
+    // Sadece öğrencileri çekiyoruz çünkü notlar zaten Boot aşamasında JSON'dan belleğe yüklendi.
     var urlStudents = API_URL + '?action=getStudents&className=' + encodeURIComponent(cls.name);
-    var urlRecords = API_URL + '?action=getRecords&teacher=' + encodeURIComponent(state.teacher) + '&className=' + encodeURIComponent(cls.name);
-
-    var [respStudents, respRecords] = await Promise.all([ fetch(urlStudents), fetch(urlRecords) ]);
+    var respStudents = await fetch(urlStudents);
     var students = await respStudents.json();
-    var allRecords = await respRecords.json();
 
     state.students = students;
 
@@ -1886,50 +1893,20 @@ async function openClass(classId) {
       return;
     }
 
-    var records = allRecords.filter(r => r.hwName === targetLabel);
-
-    Object.keys(state.statuses).forEach(function(k) {
-       if (k.indexOf(cls.id + '_' + targetLabel) !== -1) {
-           delete state.statuses[k];
-           delete state.multScores[k];
-       }
-    });
-    
+    // Yeni ve boş bir değerlendirme için "general" id'sini sıfırlıyoruz. 
     var genId = '_general_' + cls.id + '_' + targetLabel;
-    state.statuses[genId] = {}; 
+    if (!state.statuses[genId]) state.statuses[genId] = {}; 
     state.statuses['_general'] = {};
 
-    records.forEach(function(r, idx) {
-       if(r.status === 'blank' || r.score === 0 || r.score === '') return;
-       var hwId = 'cloud_' + cls.id + '_' + targetLabel + '_' + idx; 
-       if (!state.statuses[hwId]) state.statuses[hwId] = {};
-       if (!state.multScores[hwId]) state.multScores[hwId] = {plus: 1, minus: 1};
-
-       // YENİ: Sınav 1 ve Sınav 2'yi ayırıp yerine yerleştir
-       if (r.status === 'Sınav 1' || r.status === 'Sınav 2' || r.status === 'Sınav') {
-         var currentEx = state.statuses[hwId][r.no + '_exam'] || '|';
-         var p = String(currentEx).split('|');
-         if (r.status === 'Sınav 1') p[0] = String(r.score);
-         else if (r.status === 'Sınav 2') p[1] = String(r.score);
-         else { p[0] = String(r.score); } 
-         
-         state.statuses[hwId][r.no + '_exam'] = p[0] + '|' + (p[1] || '');
-       } else {
-         state.statuses[hwId][r.no] = r.status;
-         if (r.status === 'plus') state.multScores[hwId].plus = parseInt(r.score) || 1;
-         if (r.status === 'minus') state.multScores[hwId].minus = Math.abs(parseInt(r.score)) || 1;
-       }
-    });
-
     persist();
-    notify('Liste başarıyla yüklendi ✓', 'success', 1200);
+    notify('Sınıf listesi yüklendi ✓', 'success', 1200);
     renderStudentArea();
     updateTally();
     updateQS();
 
   } catch(e) {
     area.innerHTML = '<div class="empty-state"><span class="empty-icon">❌</span><div class="empty-text">İnternet bağlantısı kurulamadı.<br>Lütfen tekrar deneyin.</div></div>';
-    notify('Bulut eşitlemesi başarısız.', 'error');
+    notify('Sınıf yüklenirken hata oluştu.', 'error');
   }
  localStorage.setItem('vpAL3_lastClassId', classId);
 }
@@ -2400,19 +2377,22 @@ async function saveRecord() {
     }
     
     // YENİ: Sınav notlarını metin formatında ve ayrı ayrı Sheets'e yolla
+// YENİ: Sınav notlarını metin formatında ve ayrı ayrı Sheets'e yolla
     if (exSt !== '') {
       var eParts = String(exSt).split('|');
-      if (eParts[0] && eParts[0].trim() !== '') {
-        studentsData.push({ no: s.no, status: 'Sınav 1', score: eParts[0].trim() });
+      
+      // 1. DÜZELTME BURADA: Güvenli String çevirimi ve trim
+      var note1 = eParts[0] ? String(eParts[0]).trim() : '';
+      var note2 = eParts[1] ? String(eParts[1]).trim() : '';
+
+      if (note1 !== '') {
+        studentsData.push({ no: s.no, status: 'Sınav 1', score: note1 });
         hasAdded = true;
       }
-      if (eParts[1] && eParts[1].trim() !== '') {
-        studentsData.push({ no: s.no, status: 'Sınav 2', score: eParts[1].trim() });
+      if (note2 !== '') {
+        studentsData.push({ no: s.no, status: 'Sınav 2', score: note2 });
         hasAdded = true;
       }
-    }
-    if (!hasAdded) {
-      studentsData.push({ no: s.no, status: 'blank', score: 0 });
     }
   });
 
@@ -2456,6 +2436,9 @@ async function saveRecord() {
   } catch(e) {
     notify('İnternet Hatası: Verileriniz telefonda güvende, tekrar deneyin.', 'error');
   }
+
+  // YENİ: Notları hızlı profil verisi olarak buluta senkronize et
+  await syncTeacherProfile();
 
   btn.innerHTML = '💾 Kaydet';
   btn.classList.remove('busy');
@@ -3064,23 +3047,36 @@ async function syncTeacherProfile() {
   var payload = {
     action: 'saveTeacherData',
     teacher: state.teacher,
-    jsonData: JSON.stringify({ classes: state.classes, notes: state.notes })
+    // DÜZELTME: Sınıfları ve notları (statuses ve multScores) tek bir fişek gibi pakete koyuyoruz!
+    jsonData: JSON.stringify({ 
+      classes: state.classes, 
+      notes: state.notes,
+      statuses: state.statuses,
+      multScores: state.multScores 
+    })
   };
   try {
-    await fetch(API_URL, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+    await fetch(API_URL, { 
+      method: 'POST', mode: 'cors', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+      body: JSON.stringify(payload) 
+    });
   } catch(e) { console.log('Profil eşitleme başarısız (arka plan)'); }
 }
 
 async function loadTeacherProfile(teacherName) {
   try {
-    var url = API_URL + '?action=getTeacherData&teacher=' + encodeURIComponent(teacherName);
+    var url = API_URL + '?action=getTeacherData&teacher=' + encodeURIComponent(teacherName) + '&_t=' + Date.now();
     var resp = await fetch(url);
     var text = await resp.text(); 
-    if (!text || text.trim() === '' || text.trim() === 'null') return; // JSON çökme koruması
+    if (!text || text.trim() === '' || text.trim() === 'null') return; 
     var data = JSON.parse(text);
-    if (data && data.classes) {
+    if (data) {
       state.classes = data.classes || [];
       state.notes = data.notes || {};
+      // DÜZELTME: Buluttan gelirken notları da anında belleğe alıyoruz
+      state.statuses = data.statuses || {};
+      state.multScores = data.multScores || {};
       persist(); 
     }
   } catch(e) { console.log('Profil çekme başarısız: ' + e.message); }
