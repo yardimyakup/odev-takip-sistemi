@@ -1410,15 +1410,15 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
 'use strict';
 
 // ════════════════════════════════
-// CONSTANTS
+// SABITLER
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbzSGSSQPu6wDAnmkSmsqlOB3vVuRLfZ9uEjl4GObNhZKqKeQLnz_RqpyaAoXtkio1FT/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwCxVHdZOAXTT1nuJCqlN6M8lR-TGXMTptMHZ6e1x82_aTSx-PlZtyw7mM76JeWx_h7/exec";
 const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
-const BRANCH_LABELS = { Edebiyat:'Türk Dili ve Edebiyatı', Ingilizce:'İngilizce', Fransizca:'Fransızca' };
+const BRANCH_LABELS = { Edebiyat: 'T\u00fcrk Dili ve Edebiyat\u0131', Ingilizce: '\u0130ngilizce', Fransizca: 'Frans\u0131zca' };
 const STORAGE_KEY = 'vpAL3';
 
 // ════════════════════════════════
-// STATE
+// DURUM (STATE)
 // ════════════════════════════════
 var state = {
   users: {},
@@ -1436,54 +1436,63 @@ var state = {
   editMode: false,
   students: [],
   noteTarget: null,
-  inputMode: 'perf' // YENİ: Varsayılan mod performans
+  inputMode: 'perf'
 };
 
 // ════════════════════════════════
-// PERSISTENCE
+// YEREL DEPOLAMA
 // ════════════════════════════════
 function persist() {
   try {
     localStorage.setItem(STORAGE_KEY + '_users', JSON.stringify(state.users));
-
-    if (state.teacher) {
-      var teacherKey = STORAGE_KEY + '_' + state.teacher.replace(/\s+/g, '');
-      localStorage.setItem(teacherKey, JSON.stringify({
-        classes:    state.classes,
-        homeworks:  state.homeworks,
-        statuses:   state.statuses,
-        notes:      state.notes,
-        multScores: state.multScores || {}
-      }));
-    }
-  } catch(e) { console.warn('LocalStorage write error:', e); }
+    if (!state.teacher) return;
+    var teacherKey = STORAGE_KEY + '_' + state.teacher.replace(/\s+/g, '');
+    var dataToSave = {
+      classes: state.classes, homeworks: state.homeworks,
+      statuses: state.statuses, notes: state.notes, multScores: state.multScores || {}
+    };
+    var jsonStr = JSON.stringify(dataToSave);
+    if (new Blob([jsonStr]).size / 1024 > 4096) console.warn('LocalStorage boyutu 4MB sinarina yaklasti!');
+    localStorage.setItem(teacherKey, jsonStr);
+  } catch (e) {
+    if (e.name === 'QuotaExceededError') {
+      var thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      var cleaned = 0;
+      Object.keys(state.statuses).forEach(function (key) {
+        if (key.startsWith('_general_')) {
+          var ts = parseInt(key.split('_').pop());
+          if (!isNaN(ts) && ts < thirtyDaysAgo) { delete state.statuses[key]; delete state.multScores[key]; cleaned++; }
+        }
+      });
+      try {
+        var k2 = STORAGE_KEY + '_' + state.teacher.replace(/\s+/g, '');
+        localStorage.setItem(k2, JSON.stringify({ classes: state.classes, homeworks: state.homeworks, statuses: state.statuses, notes: state.notes, multScores: state.multScores || {} }));
+        notify(cleaned + ' eski kay\u0131t temizlendi.', 'success', 3500);
+      } catch (e2) {
+        showCustomConfirm('Haf\u0131za Dolu!', 'Depolama alani doldu. L\u00fctfen <b>KAYDET</b> butonuna basin.', '\u26a0\ufe0f', function () {}, false);
+      }
+    } else { console.warn('LocalStorage hatas\u0131:', e); }
+  }
 }
 
 function hydrate() {
   try {
     state.teacher = localStorage.getItem(STORAGE_KEY + '_teacher') || null;
     state.branch  = localStorage.getItem(STORAGE_KEY + '_branch')  || null;
-
     var usersRaw = localStorage.getItem(STORAGE_KEY + '_users');
     if (usersRaw) state.users = JSON.parse(usersRaw);
-
     if (state.teacher) {
       var teacherKey = STORAGE_KEY + '_' + state.teacher.replace(/\s+/g, '');
       var raw = localStorage.getItem(teacherKey);
       if (raw) {
         var d = JSON.parse(raw);
-        state.classes    = d.classes    || [];
-        state.homeworks  = d.homeworks  || {};
-        state.statuses   = d.statuses   || {};
-        state.notes      = d.notes      || {};
-        state.multScores = d.multScores || {};
+        state.classes = d.classes || []; state.homeworks = d.homeworks || {};
+        state.statuses = d.statuses || {}; state.notes = d.notes || {}; state.multScores = d.multScores || {};
       } else {
         state.classes = []; state.homeworks = {}; state.statuses = {}; state.notes = {}; state.multScores = {};
       }
     }
-  } catch(e) { 
-    state.multScores = {}; 
-  }
+  } catch (e) { state.multScores = {}; }
 }
 
 hydrate();
@@ -1491,105 +1500,62 @@ hydrate();
 // ════════════════════════════════
 // BOOT
 // ════════════════════════════════
-// ════════════════════════════════
-// BOOT (GÜNCELLENDİ: Anında açılır, bulutu arkada bekler)
-// ════════════════════════════════
-// ════════════════════════════════
-// BOOT (GÜNCELLENDİ: Nerede Kaldıysan Oradan Devam Et)
-// ════════════════════════════════
-// ════════════════════════════════
-// BOOT (GÜNCELLENDİ: Anında Açılır, Yenilemede Atmaz)
-// ════════════════════════════════
-// ════════════════════════════════
-// BOOT (GÜNCELLENDİ: Önce Bulutu Bekle, Sonra Ekranı Aç)
-// ════════════════════════════════
 (async function boot() {
   applyTheme();
-  
   if (state.teacher) {
-    // 1. Beklerken beyaz ekran göstermemek için direkt Dashboard'u açıyoruz (Eski cache verileriyle)
-    showDashboard();
-    
-    // Kullanıcıya verilerin güncellendiğini bildirebilirsin
-    notify('Buluttan güncel veriler çekiliyor... ⏳', 'info', 2000);
-    
-    // 2. Şimdi arka planda güncel notları bekle
-    await loadTeacherProfile(state.teacher);
-    
-    var lastScreen = localStorage.getItem('vpAL3_lastScreen');
+    var lastScreen  = localStorage.getItem('vpAL3_lastScreen');
     var lastClassId = localStorage.getItem('vpAL3_lastClassId');
-    
-    // 3. Bulut indikten sonra son kaldığı ekranı aç veya paneli güncelle
+    if (!lastScreen || lastScreen === 'screen-dashboard') showDashboard();
+    notify('Veriler g\u00fcncelleniyor... \u23f3', 'info', 2000);
+    await loadTeacherProfile(state.teacher);
     if ((lastScreen === 'screen-assignment' || lastScreen === 'screen-analytics') && lastClassId) {
-       var cls = state.classes.find(c => c.id === lastClassId);
-       if (cls) {
-          openClass(lastClassId).then(() => {
-              if (lastScreen === 'screen-analytics') {
-                  openAnalytics();
-              }
-          });
-       } else {
-          showDashboard();
-       }
-    } else {
-       // Veriler yenilendiği için Dashboard'u tekrar render et
-       renderDashboard(); 
-    }
-  } else {
-    showScreen('screen-login');
-  }
+      var cls = state.classes.find(function (c) { return c.id === lastClassId; });
+      if (cls) {
+        openClass(lastClassId).then(function () { if (lastScreen === 'screen-analytics') openAnalytics(); });
+      } else { showDashboard(); }
+    } else { renderDashboard(); }
+  } else { showScreen('screen-login'); }
 })();
 
 // ════════════════════════════════
-// SCREEN MANAGEMENT & THEME
-// ════════════════════════════════
-// ════════════════════════════════
-// SCREEN MANAGEMENT & THEME
+// EKRAN & TEMA
 // ════════════════════════════════
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
-  
-  // YENİ: Bulunulan ekranı hafızaya al (Giriş ekranı hariç)
-  if (id !== 'screen-login') {
-      localStorage.setItem('vpAL3_lastScreen', id);
-  }
+  if (id !== 'screen-login') localStorage.setItem('vpAL3_lastScreen', id);
 }
 
 function notify(msg, type, dur) {
-  type = type || 'info';
-  dur  = dur  || 2800;
-  var icons = { success:'✅', error:'❌', info:'ℹ️' };
+  type = type || 'info'; dur = dur || 2800;
+  var icons = { success: '\u2705', error: '\u274c', info: '\u2139\ufe0f' };
   var wrap = document.getElementById('notif-wrap');
   var el = document.createElement('div');
   el.className = 'notif ' + type;
-  el.innerHTML = '<span>' + (icons[type] || '🔔') + '</span><span>' + msg + '</span>';
+  el.innerHTML = '<span>' + (icons[type] || '\uD83D\uDD14') + '</span><span>' + msg + '</span>';
   wrap.appendChild(el);
-  setTimeout(function() {
+  setTimeout(function () {
     el.style.animation = 'notifOut 0.3s ease forwards';
-    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
   }, dur);
 }
 
 function applyTheme() {
   var saved = localStorage.getItem('vpAL3_theme');
   var isDark = saved === 'dark' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  if (isDark) document.body.classList.add('dark');
-  else document.body.classList.remove('dark');
-  var icon = isDark ? '☀️' : '🌙';
-  document.querySelectorAll('[onclick="toggleTheme()"]').forEach(function(b) { b.textContent = icon; });
+  document.body.classList.toggle('dark', isDark);
+  document.querySelectorAll('[onclick="toggleTheme()"]').forEach(function (b) { b.textContent = isDark ? '\u2600\ufe0f' : '\uD83C\uDF19'; });
 }
 
 function toggleTheme() {
   var isDark = document.body.classList.toggle('dark');
   localStorage.setItem('vpAL3_theme', isDark ? 'dark' : 'light');
-  var icon = isDark ? '☀️' : '🌙';
-  document.querySelectorAll('[onclick="toggleTheme()"]').forEach(function(b) { b.textContent = icon; });
+  document.querySelectorAll('[onclick="toggleTheme()"]').forEach(function (b) { b.textContent = isDark ? '\u2600\ufe0f' : '\uD83C\uDF19'; });
   if (document.getElementById('screen-analytics').classList.contains('active')) openAnalytics();
 }
 
 // ════════════════════════════════
-// AUTH — LOGIN
+// GİRİŞ / KAYIT
 // ════════════════════════════════
 function switchTab(tab) {
   document.getElementById('tab-giris').classList.toggle('active', tab === 'giris');
@@ -1601,8 +1567,8 @@ function switchTab(tab) {
 
 function toggleEye(inputId, btn) {
   var inp = document.getElementById(inputId);
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-  else { inp.type = 'password'; btn.textContent = '👁'; }
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '\uD83D\uDE48'; }
+  else { inp.type = 'password'; btn.textContent = '\uD83D\uDC41'; }
 }
 
 function setErr(msg) { document.getElementById('login-err').textContent = msg; }
@@ -1610,34 +1576,23 @@ function setErr(msg) { document.getElementById('login-err').textContent = msg; }
 async function doLogin() {
   var name = document.getElementById('li-name').value.trim();
   var pass = document.getElementById('li-pass').value.trim();
-  if (!name || !pass) { setErr('Ad soyad ve şifre giriniz.'); return; }
-
+  if (!name || !pass) { setErr('Ad soyad ve \u015fifre giriniz.'); return; }
   var btn = document.getElementById('btn-giris');
-  btn.textContent = 'Giriş yapılıyor...';
-  btn.disabled = true;
-  setErr('');
-
+  btn.textContent = 'Giri\u015f yap\u0131l\u0131yor...'; btn.disabled = true; setErr('');
   try {
     var url = API_URL + '?action=login&user=' + encodeURIComponent(name) + '&pass=' + encodeURIComponent(pass);
     var resp = await fetch(url);
     var result = await resp.json();
     if (result.success) {
-      state.teacher = result.fullName;
-      state.branch  = result.branch || 'Diger';
+      state.teacher = result.fullName; state.branch = result.branch || 'Diger';
       localStorage.setItem(STORAGE_KEY + '_teacher', state.teacher);
       localStorage.setItem(STORAGE_KEY + '_branch',  state.branch);
-      hydrate(); 
-      await loadTeacherProfile(state.teacher);
-      notify('Giriş başarılı! Hoş geldiniz 🎉', 'success');
+      hydrate(); await loadTeacherProfile(state.teacher);
+      notify('Giri\u015f ba\u015far\u0131l\u0131! Ho\u015f geldiniz \uD83C\uDF89', 'success');
       showDashboard();
-    } else {
-      setErr(result.msg || 'Ad soyad veya şifre hatalı.');
-    }
-  } catch(e) {
-    setErr('Sunucuya bağlanılamadı. İnternetinizi kontrol edin.');
-  }
-  btn.textContent = 'Giriş Yap →';
-  btn.disabled = false;
+    } else { setErr(result.msg || 'Ad soyad veya \u015fifre yanl\u0131\u015f.'); }
+  } catch (e) { setErr('Sunucuya ba\u011flan\u0131lamad\u0131. \u0130nternet ba\u011flant\u0131n\u0131z\u0131 kontrol edin.'); }
+  btn.textContent = 'Giri\u015f Yap \u2192'; btn.disabled = false;
 }
 
 async function doRegister() {
@@ -1646,153 +1601,106 @@ async function doRegister() {
   var pass   = document.getElementById('reg-pass').value.trim();
   var pass2  = document.getElementById('reg-pass2').value.trim();
   var branch = document.getElementById('reg-brans').value;
-
   if (!first || !last) { setErr('Ad ve soyad zorunludur.'); return; }
-  if (pass.length < 4)  { setErr('Şifre en az 4 karakter olmalıdır.'); return; }
-  if (pass !== pass2)   { setErr('Şifreler eşleşmiyor.'); return; }
-
+  if (pass.length < 4)  { setErr('\u015eifre en az 4 karakter olmal\u0131d\u0131r.'); return; }
+  if (pass !== pass2)   { setErr('\u015eifreler e\u015fle\u015fmiyor.'); return; }
   var fullName = first + ' ' + last;
   var btn = document.getElementById('btn-kayit');
-  btn.textContent = 'Kaydediliyor...';
-  btn.disabled = true;
-  setErr('');
-
-  var payload = { action: 'registerUser', fullName: fullName, pass: pass, branch: branch };
-
+  btn.textContent = 'Kaydediliyor...'; btn.disabled = true; setErr('');
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload)
+    var response = await fetch(API_URL, {
+      method: 'POST', mode: 'cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'registerUser', fullName: fullName, pass: pass, branch: branch })
     });
-    if (!response.ok) throw new Error('HTTP Hata: ' + response.status);
-    const resultText = await response.text();
-    if (resultText.includes("Başarılı")) {
-      var key = fullName.toLowerCase();
-      state.users[key] = { pass, fullName, branch };
-      state.teacher = fullName;
-      state.branch  = branch;
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var resultText = await response.text();
+    if (resultText.includes('Ba\u015far\u0131l\u0131') || resultText.includes('Basarili')) {
+      state.teacher = fullName; state.branch = branch;
       localStorage.setItem(STORAGE_KEY + '_teacher', state.teacher);
       localStorage.setItem(STORAGE_KEY + '_branch',  state.branch);
       state.classes = []; state.homeworks = {}; state.statuses = {}; state.notes = {}; state.multScores = {};
-      persist();
-      notify('Kayıt başarılı! Hoş geldiniz 🎉', 'success');
-      showDashboard();
-    } else {
-      setErr('Sunucu hatası: ' + resultText);
-    }
-  } catch(e) {
-    setErr('🌐 Sunucuya bağlanılamıyor! İnterneti kontrol edin.');
-  }
-  btn.textContent = 'Kayıt Ol →';
-  btn.disabled = false;
+      persist(); notify('Kay\u0131t ba\u015far\u0131l\u0131! Ho\u015f geldiniz \uD83C\uDF89', 'success'); showDashboard();
+    } else { setErr('Hata: ' + resultText); }
+  } catch (e) { setErr('Sunucuya ba\u011flan\u0131lam\u0131yor! \u0130nternet ba\u011flant\u0131n\u0131z\u0131 kontrol edin.'); }
+  btn.textContent = 'Kay\u0131t Ol \u2192'; btn.disabled = false;
 }
 
 function openLogout() { openOverlay('overlay-logout'); }
+
 function confirmLogout() {
-  state.teacher = null;
-  state.branch  = null;
-  localStorage.removeItem(STORAGE_KEY + '_teacher');
-  localStorage.removeItem(STORAGE_KEY + '_branch');
-  // Yeni: Çıkışta son ekran ve sınıf kayıtlarını tamamen sil
-  localStorage.removeItem('vpAL3_lastScreen');
-  localStorage.removeItem('vpAL3_lastClassId');
+  state.teacher = null; state.branch = null;
+  localStorage.removeItem(STORAGE_KEY + '_teacher'); localStorage.removeItem(STORAGE_KEY + '_branch');
+  localStorage.removeItem('vpAL3_lastScreen'); localStorage.removeItem('vpAL3_lastClassId');
   state.classes = []; state.homeworks = {}; state.statuses = {}; state.notes = {}; state.multScores = {};
   closeOverlay('overlay-logout');
   document.getElementById('li-pass').value = '';
   showScreen('screen-login');
-  notify('Çıkış yapıldı.', 'info');
+  notify('\u00c7\u0131k\u0131\u015f yap\u0131ld\u0131.', 'info');
 }
 
-document.getElementById('li-name').addEventListener('keydown', function(e) { if(e.key==='Enter') doLogin(); });
-document.getElementById('li-pass').addEventListener('keydown', function(e) { if(e.key==='Enter') doLogin(); });
+document.getElementById('li-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+document.getElementById('li-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
 
 // ════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════
 function showDashboard() {
-  showScreen('screen-dashboard');
-  state.editMode = false;
-  renderDashboard();
-  fetchStudentCounts();
+  showScreen('screen-dashboard'); state.editMode = false; renderDashboard(); fetchStudentCounts();
 }
 
 function renderDashboard() {
-  var initials = state.teacher.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+  var initials = state.teacher.split(' ').map(function (w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
   document.getElementById('dash-avatar').textContent   = initials;
   document.getElementById('dash-name').textContent     = state.teacher;
-  document.getElementById('dash-greeting').textContent = 'Merhaba, ' + state.teacher.split(' ')[0] + '! 👋';
-
+  document.getElementById('dash-greeting').textContent = 'Merhaba, ' + state.teacher.split(' ')[0] + '! \uD83D\uDC4B';
   var branchEl = document.getElementById('dash-branch');
   if (state.branch && state.branch !== 'Diger') {
     document.getElementById('dash-branch-text').textContent = BRANCH_LABELS[state.branch] || state.branch;
     branchEl.style.display = 'inline-flex';
-  } else {
-    branchEl.style.display = 'none';
-  }
-
+  } else { branchEl.style.display = 'none'; }
   document.getElementById('lang-tool-wrap').style.display = isLangTeacher() ? 'block' : 'none';
-
-  var editBtn = document.getElementById('btn-edit');
-  editBtn.textContent = state.editMode ? '✓ Bitti' : '✏️ Düzenle';
-  
+  document.getElementById('btn-edit').textContent = state.editMode ? '\u2713 Bitti' : '\u270f\ufe0f D\u00fczle';
   var myClasses = getMyClasses();
   document.getElementById('st-sinif').textContent = myClasses.length;
-
   var grid = document.getElementById('class-grid');
   if (myClasses.length === 0) {
-    grid.innerHTML = '<div class="no-classes"><span class="no-classes-icon">🏫</span>Henüz sınıf eklenmedi.<br><span style="font-size:11px;opacity:0.7;">Sağ üstten sınıf ekleyebilirsiniz</span></div>';
-    document.getElementById('st-ogrenci').textContent = '0';
-    return;
+    grid.innerHTML = '<div class="no-classes"><span class="no-classes-icon">\uD83C\uDFEB</span>Hen\u00fcz s\u0131n\u0131f eklenmedi.<br><span style="font-size:11px;opacity:0.7;">Sa\u011f \u00fcstten s\u0131n\u0131f ekleyebilirsiniz</span></div>';
+    document.getElementById('st-ogrenci').textContent = '0'; return;
   }
-
-  grid.innerHTML = myClasses.map(function(c) {
-    var listName = c.label || "İsimsiz Liste"; 
+  grid.innerHTML = myClasses.map(function (c) {
+    var listName = c.label || '\u0130simsiz Liste';
     return '<div class="class-card-wrap' + (state.editMode ? ' editing' : '') + '">' +
       '<div class="class-card" onclick="openClass(\'' + c.id + '\')">' +
         '<div class="cc-name">' + c.name + '</div>' +
-        '<div class="cc-sub" style="font-size:12px; color:var(--text); font-weight:700;">' + listName + '</div>' +
+        '<div class="cc-sub" style="font-size:12px;color:var(--text);font-weight:700;">' + listName + '</div>' +
       '</div>' +
-      '<button class="cc-del" onclick="deleteClass(\'' + c.id + '\',event)">✕</button>' +
+      '<button class="cc-del" onclick="deleteClass(\'' + c.id + '\',event)">\u2715</button>' +
     '</div>';
   }).join('');
 }
 
-function getMyClasses() {
-  return state.classes.filter(function(c){ return c.teacher === state.teacher; });
-}
-
-function isLangTeacher() {
-  return LANG_BRANCHES.indexOf(state.branch) !== -1;
-}
+function getMyClasses() { return state.classes.filter(function (c) { return c.teacher === state.teacher; }); }
+function isLangTeacher() { return LANG_BRANCHES.indexOf(state.branch) !== -1; }
 
 async function fetchStudentCounts() {
   try {
     var resp = await fetch(API_URL + '?action=getClassCounts');
-    window._cachedCounts = await resp.json();
-    updateStudentCount();
-  } catch(e) {
-    document.getElementById('st-ogrenci').textContent = '?';
-  }
+    window._cachedCounts = await resp.json(); updateStudentCount();
+  } catch (e) { document.getElementById('st-ogrenci').textContent = '?'; }
 }
 
 function updateStudentCount() {
   if (!window._cachedCounts) return;
-  var myClasses = getMyClasses();
-  var total = 0;
-  var uniqueClassNames = [];
-  myClasses.forEach(function(c) {
-    var cleanName = c.name.replace(/\s+/g,'').toUpperCase();
-    if (uniqueClassNames.indexOf(cleanName) === -1) uniqueClassNames.push(cleanName);
+  var myClasses = getMyClasses(); var seen = []; var total = 0;
+  myClasses.forEach(function (c) {
+    var clean = c.name.replace(/\s+/g, '').toUpperCase();
+    if (seen.indexOf(clean) === -1) { seen.push(clean); total += (window._cachedCounts[clean] || 0); }
   });
-  uniqueClassNames.forEach(function(cName) {
-    total += (window._cachedCounts[cName] || 0);
-  });
-  document.getElementById('st-ogrenci').textContent = total || '—';
+  document.getElementById('st-ogrenci').textContent = total || '\u2014';
 }
 
-function toggleEditMode() {
-  state.editMode = !state.editMode;
-  renderDashboard();
-}
+function toggleEditMode() { state.editMode = !state.editMode; renderDashboard(); }
 
 function openAddClass() {
   document.getElementById('new-class-input').value = '';
@@ -1801,403 +1709,273 @@ function openAddClass() {
 }
 
 async function saveClass() {
-  var raw = document.getElementById('new-class-input').value.trim();
+  var raw      = document.getElementById('new-class-input').value.trim();
   var labelRaw = document.getElementById('new-class-label').value.trim();
-  var listLabel = labelRaw ? labelRaw : "İsimsiz Liste";
-
-  if (!raw) { notify('Sınıf adı boş olamaz.', 'error'); return; }
-  var clean = raw.replace(/\s+/g,'').toUpperCase();
-  var name = clean.replace(/^(\d+)([A-ZÇĞİÖŞÜ])$/, '$1/$2');
-  if (!name) { notify('Geçerli bir sınıf adı girin.', 'error'); return; }
-  
+  var listLabel = labelRaw || '\u0130simsiz Liste';
+  if (!raw) { notify('S\u0131n\u0131f ad\u0131 bo\u015f olamaz.', 'error'); return; }
+  // FIX: Use unicode escapes instead of literal Turkish chars in regex
+  // \u00C7=Ç \u011E=Ğ \u0130=İ \u00D6=Ö \u015E=Ş \u00DC=Ü
+  var name = raw.replace(/\s+/g, '').toUpperCase()
+               .replace(/^(\d+)([A-Z\u00C7\u011E\u0130\u00D6\u015E\u00DC])$/, '$1/$2');
+  if (!name) { notify('Ge\u00e7erli bir s\u0131n\u0131f ad\u0131 girin. (\u00d6rn: 9A)', 'error'); return; }
   var myClasses = getMyClasses();
-  if (myClasses.find(c => c.name === name && (c.label || "İsimsiz Liste") === listLabel)) {
+  if (myClasses.find(function (c) { return c.name === name && (c.label || '\u0130simsiz Liste') === listLabel; })) {
     notify('"' + name + ' - ' + listLabel + '" zaten mevcut.', 'error'); return;
   }
-  
-  var newClass = { id:'c_' + Date.now(), name:name, label: listLabel, teacher:state.teacher };
-  state.classes.push(newClass);
-  state.homeworks[newClass.id] = [];
-  persist();
-  // DÜZELTME: Kaydetmeden önce başka cihazdan girilen veri varsa onu ezmemek için bulutu tazele
-  
-  closeOverlay('overlay-class');
-  renderDashboard();
-  
-  // YENİ: Buluta kaydedilmesini zorunlu olarak bekle (Yarım kalmasını önler)
-  notify('Buluta kaydediliyor... ⏳', 'info', 1500);
+  var newClass = { id: 'c_' + Date.now(), name: name, label: listLabel, teacher: state.teacher };
+  state.classes.push(newClass); state.homeworks[newClass.id] = [];
+  persist(); closeOverlay('overlay-class'); renderDashboard();
+  notify('Buluta kaydediliyor... \u23f3', 'info', 1500);
   await syncTeacherProfile();
-  notify(name + ' sınıfı eklendi! 🎉', 'success');
+  notify(name + ' s\u0131n\u0131f\u0131 eklendi! \uD83C\uDF89', 'success');
 }
 
 function deleteClass(id, ev) {
   ev.stopPropagation();
-  var c = state.classes.find(x => x.id === id);
+  var c = state.classes.find(function (x) { return x.id === id; });
   if (!c) return;
-  showCustomConfirm('Sınıfı Sil', '<b>' + c.name + '</b> sınıfını silmek istediğinize emin misiniz?<br><span style="font-size:11px; color:#e02020;">Bu işlem geri alınamaz!</span>', '🗑️', async function() {
-      state.classes = state.classes.filter(x => x.id !== id);
-      delete state.homeworks[id];
-      persist();
-      renderDashboard();
-      
-      // YENİ: Silme işleminin buluta işlenmesini zorla
-      notify('Sınıf siliniyor, bulut güncelleniyor... ⏳', 'info', 1500);
+  showCustomConfirm('S\u0131n\u0131f\u0131 Sil',
+    '<b>' + c.name + '</b> s\u0131n\u0131f\u0131n\u0131 silmek istedi\u011finize emin misiniz?<br><span style="font-size:11px;color:#e02020;">Bu i\u015flem geri al\u0131namaz!</span>',
+    '\uD83D\uDDD1\ufe0f',
+    async function () {
+      state.classes = state.classes.filter(function (x) { return x.id !== id; });
+      delete state.homeworks[id]; persist(); renderDashboard();
       await syncTeacherProfile();
-      notify('Sınıf kalıcı olarak silindi.', 'info');
-  });
+      notify('S\u0131n\u0131f silindi.', 'info');
+    }
+  );
 }
 
 // ════════════════════════════════
-// ASSIGNMENT SCREEN & CLOUD SYNC
+// SINIF EKRANI
 // ════════════════════════════════
 async function openClass(classId) {
   if (state.editMode) return;
-  var cls = state.classes.find(c => c.id === classId);
+  var cls = state.classes.find(function (c) { return c.id === classId; });
   if (!cls) return;
-
-  state.inputMode = 'perf';
-  switchInputMode('perf');
-
-  state.currentClass = cls;
-  state.currentHwId  = null;
-  state.multPlus  = 1;
-  state.multMinus = 1;
-  state.students  = [];
-
+  state.currentClass = cls; state.currentHwId = null;
+  state.multPlus = 1; state.multMinus = 1; state.students = []; state.inputMode = 'perf';
   document.getElementById('mv-plus').textContent  = 1;
   document.getElementById('mv-minus').textContent = 1;
-
-  var initials = state.teacher.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
-  var targetLabel = cls.label || "İsimsiz Liste"; 
-  
-  document.getElementById('asgn-topbar-title').textContent = cls.name + ' Sınıfı';
+  switchInputMode('perf');
+  var initials    = state.teacher.split(' ').map(function (w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+  var targetLabel = cls.label || '\u0130simsiz Liste';
+  document.getElementById('asgn-topbar-title').textContent = cls.name + ' S\u0131n\u0131f\u0131';
   document.getElementById('asgn-topbar-sub').textContent   = targetLabel;
   document.getElementById('asgn-classname').textContent    = cls.name;
-  document.getElementById('asgn-meta').textContent         = targetLabel + ' • ' + today();
+  document.getElementById('asgn-meta').textContent         = targetLabel + ' \u2022 ' + today();
   document.getElementById('asgn-avatar').textContent       = initials;
-
   showScreen('screen-assignment');
-
+  localStorage.setItem('vpAL3_lastClassId', classId);
   var area = document.getElementById('student-area');
-  area.innerHTML = '<div class="empty-state"><span class="spin" style="width:32px;height:32px;border-width:3px;margin:0 auto 12px;display:block;"></span><div class="empty-text">Veriler hızla çekiliyor... ⚡</div></div>';
-
-try {
-    // 1. DÜZELTME: Artık yavaşlatan ve zombi notlar getiren "getRecords" komutunu sildik! 
-    // Sadece öğrencileri çekiyoruz çünkü notlar zaten Boot aşamasında JSON'dan belleğe yüklendi.
-    var urlStudents = API_URL + '?action=getStudents&className=' + encodeURIComponent(cls.name) + '&_t=' + Date.now();
-    var respStudents = await fetch(urlStudents);
-    var students = await respStudents.json();
-
-    state.students = students;
-
+  area.innerHTML = '<div class="empty-state"><span class="spin" style="width:32px;height:32px;border-width:3px;margin:0 auto 12px;display:block;"></span><div class="empty-text">\u00d6\u011frenciler y\u00fckleniyor... \u26a1</div></div>';
+  try {
+    var url = API_URL + '?action=getStudents&className=' + encodeURIComponent(cls.name) + '&_t=' + Date.now();
+    var resp = await fetch(url);
+    var students = await resp.json();
     if (!Array.isArray(students) || students.length === 0) {
-      area.innerHTML = '<div class="empty-state"><span class="empty-icon">📭</span><div class="empty-text"><b>' + cls.name + '</b> için veritabanında öğrenci bulunamadı.<br><span style="font-size:12px;opacity:0.7;">PDF aktarımı yapıldığına emin olun</span></div></div>';
+      area.innerHTML = '<div class="empty-state"><span class="empty-icon">\uD83D\uDCED</span><div class="empty-text"><b>' + cls.name + '</b> i\u00e7in \u00f6\u011frenci bulunamad\u0131.</div></div>';
       return;
     }
-
-    // Yeni ve boş bir değerlendirme için "general" id'sini sıfırlıyoruz. 
-    var genId = '_general_' + cls.id + '_' + targetLabel;
-    if (!state.statuses[genId]) state.statuses[genId] = {}; 
-    state.statuses['_general'] = {};
-
-    persist();
-    notify('Sınıf listesi yüklendi ✓', 'success', 1200);
-    renderStudentArea();
-    updateTally();
-    updateQS();
-
-  } catch(e) {
-    area.innerHTML = '<div class="empty-state"><span class="empty-icon">❌</span><div class="empty-text">İnternet bağlantısı kurulamadı.<br>Lütfen tekrar deneyin.</div></div>';
-    notify('Sınıf yüklenirken hata oluştu.', 'error');
+    state.students = students;
+    if (!state.statuses['_general']) state.statuses['_general'] = {};
+    persist(); notify('Liste y\u00fcklendi \u2713', 'success', 1200);
+    renderStudentArea(); updateTally(); updateQS();
+  } catch (e) {
+    area.innerHTML = '<div class="empty-state"><span class="empty-icon">\u274c</span><div class="empty-text">Ba\u011flant\u0131 hatas\u0131. L\u00fctfen tekrar deneyin.</div></div>';
+    notify('S\u0131n\u0131f y\u00fcklenemedi.', 'error');
   }
- localStorage.setItem('vpAL3_lastClassId', classId);
 }
 
 function goBack() {
-  state.currentClass = null;
-  state.currentHwId  = null;
-  state.students     = [];
-  
-  // YENİ: Sınıftan çıkıldığı için hafızadaki sınıfı sil ve paneli kaydet
+  state.currentClass = null; state.currentHwId = null; state.students = [];
   localStorage.removeItem('vpAL3_lastClassId');
   localStorage.setItem('vpAL3_lastScreen', 'screen-dashboard');
-  
   showDashboard();
 }
 
 function changeMult(type, delta) {
-  if (type === 'plus') {
-    state.multPlus = Math.max(1, Math.min(10, state.multPlus + delta));
-    document.getElementById('mv-plus').textContent = state.multPlus;
-  } else {
-    state.multMinus = Math.max(1, Math.min(10, state.multMinus + delta));
-    document.getElementById('mv-minus').textContent = state.multMinus;
-  }
+  if (type === 'plus') { state.multPlus = Math.max(1, Math.min(10, state.multPlus + delta)); document.getElementById('mv-plus').textContent = state.multPlus; }
+  else { state.multMinus = Math.max(1, Math.min(10, state.multMinus + delta)); document.getElementById('mv-minus').textContent = state.multMinus; }
   var activeId = state.currentHwId || '_general';
   var hwSt = state.statuses[activeId] || {};
-  state.students.forEach(function(s) {
-    var row = document.getElementById('row-' + s.no);
-    if (!row) return;
-    var badge = row.querySelector('.s-score-badge');
+  state.students.forEach(function (s) {
+    var badge = document.querySelector('#row-' + s.no + ' .s-score-badge');
     if (!badge) return;
     var st = hwSt[s.no];
     if (st === 'plus')  badge.textContent = '+' + state.multPlus;
-    if (st === 'minus') badge.textContent = '−' + state.multMinus;
+    if (st === 'minus') badge.textContent = '\u2212' + state.multMinus;
   });
-  updateTally();
-  updateQS();
+  updateTally(); updateQS();
 }
 
-// ════════════════════════════════
-// MOD DEĞİŞTİRME VE SINAV NOTU GİRİŞİ
-// ════════════════════════════════
 function switchInputMode(mode) {
   state.inputMode = mode;
   document.getElementById('mode-perf').classList.toggle('active', mode === 'perf');
   document.getElementById('mode-exam').classList.toggle('active', mode === 'exam');
-  
   var multBar = document.querySelector('.mult-bar');
   var quickStats = document.querySelector('.quick-stats');
-  
-  if (mode === 'exam') {
-    multBar.classList.add('hidden-in-exam');
-    quickStats.classList.add('hidden-in-exam');
-  } else {
-    multBar.classList.remove('hidden-in-exam');
-    quickStats.classList.remove('hidden-in-exam');
-  }
+  if (multBar)    multBar.classList.toggle('hidden-in-exam', mode === 'exam');
+  if (quickStats) quickStats.classList.toggle('hidden-in-exam', mode === 'exam');
   renderStudentArea();
 }
 
-function setExamScore(no, val, examType) {
-  var activeId = state.currentHwId || '_general';
-  if (!state.statuses[activeId]) state.statuses[activeId] = {};
-  
-  var currentExamStatus = state.statuses[activeId][no + '_exam'] || '';
-  
-  var notes = { '1': '', '2': '' };
-  if (currentExamStatus) {
-    var parts = currentExamStatus.split('|');
-    notes['1'] = parts[0] || '';
-    notes['2'] = parts[1] || '';
-  }
-
-  notes[examType] = val.trim();
-
-  if (notes['1'] === '' && notes['2'] === '') {
-    delete state.statuses[activeId][no + '_exam'];
-  } else {
-    state.statuses[activeId][no + '_exam'] = notes['1'] + '|' + notes['2'];
-  }
-  updateRow(no);
+// ════════════════════════════════
+// ÖĞRENCİ ALANI
+// ════════════════════════════════
+function calcStudentTotals(studentNo) {
+  if (!state.currentClass) return { plus: 0, minus: 0, exam1: '', exam2: '' };
+  var targetLabel = state.currentClass.label || '\u0130simsiz Liste';
+  var plus = 0, minus = 0, exam1 = '', exam2 = '', e1Found = false, e2Found = false;
+  Object.keys(state.statuses).forEach(function (hwId) {
+    if (hwId !== '_general' && hwId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
+    var hwData = state.statuses[hwId];
+    var ms = (state.multScores && state.multScores[hwId]) ? state.multScores[hwId] : { plus: 1, minus: 1 };
+    if (hwData[studentNo] === 'plus')  plus  += ms.plus;
+    if (hwData[studentNo] === 'minus') minus += ms.minus;
+    var exSt = hwData[studentNo + '_exam'];
+    if (exSt) {
+      var parts = String(exSt).split('|');
+      if (parts[0] && !e1Found) { exam1 = parts[0]; e1Found = true; }
+      if (parts[1] && !e2Found) { exam2 = parts[1]; e2Found = true; }
+    }
+  });
+  return { plus: plus, minus: minus, exam1: exam1, exam2: exam2 };
 }
 
-// ════════════════════════════════
-// STUDENT AREA
-// ════════════════════════════════
 function renderStudentArea() {
-  var area = document.getElementById('student-area');
   var students = state.students;
   if (!students || students.length === 0) return;
-
   var activeId = state.currentHwId || '_general';
   var hwSt = state.statuses[activeId] || {};
-
-  // renderSRow çağrısına performans verisini ve sınav verisini ayrı ayrı yolluyoruz!
-  var rowsHtml = students.map(function(s) { return renderSRow(s, hwSt[s.no] || null, hwSt[s.no + '_exam'] || null); }).join('');
-
+  var rowsHtml = students.map(function (s) {
+    return renderSRow(s, hwSt[s.no] || null, hwSt[s.no + '_exam'] || null, calcStudentTotals(s.no));
+  }).join('');
   var shortcutBtns = '';
   if (state.inputMode === 'perf') {
-    shortcutBtns = 
-      '<div class="shortcut-btns">' +
-        '<button class="sc-btn sc-plus" onclick="setAll(\'plus\')">✓ Tümü</button>' +
-        '<button class="sc-btn sc-minus" onclick="setAll(\'minus\')">✗ Tümü</button>' +
+    shortcutBtns = '<div class="shortcut-btns">' +
+      '<button class="sc-btn sc-plus"  onclick="setAll(\'plus\')">\u2713 T\u00fcm\u00fc</button>' +
+      '<button class="sc-btn sc-minus" onclick="setAll(\'minus\')">\u2717 T\u00fcm\u00fc</button>' +
       '</div>';
   }
-
+  var area = document.getElementById('student-area');
   area.innerHTML =
     '<div class="list-bar">' +
-      '<div class="list-bar-info"><span>' + state.currentClass.name + '</span> · ' + students.length + ' öğrenci</div>' +
+      '<div class="list-bar-info"><span>' + state.currentClass.name + '</span> \u00b7 ' + students.length + ' \u00f6\u011frenci</div>' +
       shortcutBtns +
     '</div>' +
     '<div class="student-list">' + rowsHtml + '</div>';
 }
 
-function renderSRow(student, status, examStatus) {
+function renderSRow(student, status, examStatus, totals) {
   var no = student.no;
-  var score = '';
   var examNotes = { '1': '', '2': '' };
-  
   if (examStatus) {
-     var parts = String(examStatus).split('|'); 
-     examNotes['1'] = parts[0] || '';
-     examNotes['2'] = parts[1] || '';
+    var ep = String(examStatus).split('|');
+    examNotes['1'] = ep[0] || ''; examNotes['2'] = ep[1] || '';
+  } else if (totals) {
+    examNotes['1'] = totals.exam1 || ''; examNotes['2'] = totals.exam2 || '';
   }
-
-  var targetLabel = state.currentClass.label || "İsimsiz Liste";
-  var noteKey = state.currentClass.id + '_' + targetLabel;
+  var targetLabel = state.currentClass.label || '\u0130simsiz Liste';
+  var noteKey  = state.currentClass.id + '_' + targetLabel;
   var clsNotes = state.notes[noteKey] || {};
-  var hasNote = !!(clsNotes[no]);
-
-  var totalPlus = 0, totalMinus = 0;
-  Object.keys(state.statuses).forEach(function(hwId) {
-    if (hwId !== '_general' && hwId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
-    var st = state.statuses[hwId][no];
-    if (st === 'plus')  totalPlus  += (state.multScores[hwId] ? state.multScores[hwId].plus  : 1);
-    if (st === 'minus') totalMinus += (state.multScores[hwId] ? state.multScores[hwId].minus : 1);
-    
-    var exSt = state.statuses[hwId][no + '_exam'];
-    if (exSt && !examStatus) { 
-       var eParts = String(exSt).split('|');
-       if (eParts[0]) examNotes['1'] = eParts[0];
-       if (eParts[1]) examNotes['2'] = eParts[1];
-    }
-  });
-
+  var hasNote  = !!(clsNotes[no]);
+  var totalPlus  = totals ? totals.plus  : 0;
+  var totalMinus = totals ? totals.minus : 0;
+  var score = '';
   if (state.inputMode === 'perf') {
-     score = status === 'plus' ? '+' + state.multPlus : status === 'minus' ? '−' + state.multMinus : '';
+    if (status === 'plus')  score = '+' + state.multPlus;
+    if (status === 'minus') score = '\u2212' + state.multMinus;
   }
-
   var histHtml = '';
   if (totalPlus > 0 || totalMinus > 0) {
     histHtml = '<div class="s-history">' +
-      (totalPlus  > 0 ? '<span class="h-plus">+'  + totalPlus  + ' ✓</span>' : '') +
-      (totalMinus > 0 ? '<span class="h-minus">−' + totalMinus + ' ✗</span>' : '') +
+      (totalPlus  > 0 ? '<span class="h-plus">+'  + totalPlus  + ' \u2713</span>' : '') +
+      (totalMinus > 0 ? '<span class="h-minus">\u2212' + totalMinus + ' \u2717</span>' : '') +
     '</div>';
   }
-
-  // YENİ: Sınav Modundayken yeşil yanmayı iptal ettik (hepsi aynı renk kalacak)
   var rowClass = 's-row';
   if (state.inputMode === 'perf') {
-     if (status === 'plus') rowClass += ' done';
-     if (status === 'minus') rowClass += ' miss';
+    if (status === 'plus')  rowClass += ' done';
+    if (status === 'minus') rowClass += ' miss';
   }
-  
   var rightSide = '';
   if (state.inputMode === 'exam') {
     rightSide = '<div class="exam-inputs-wrap">' +
-      '<div class="exam-input-group">' +
-        '<span class="exam-input-label">1. Not</span>' +
-        '<input type="number" class="exam-input" placeholder="-" value="' + examNotes['1'] + '" onchange="setExamScore(\'' + no + '\', this.value, \'1\')">' +
-      '</div>' +
-      '<div class="exam-input-group">' +
-        '<span class="exam-input-label">2. Not</span>' +
-        '<input type="number" class="exam-input" placeholder="-" value="' + examNotes['2'] + '" onchange="setExamScore(\'' + no + '\', this.value, \'2\')">' +
-      '</div>' +
-    '</div>';
+      '<div class="exam-input-group"><span class="exam-input-label">1. Not</span>' +
+      '<input type="number" class="exam-input" placeholder="-" value="' + examNotes['1'] + '" onchange="setExamScore(\'' + no + '\', this.value, \'1\')"></div>' +
+      '<div class="exam-input-group"><span class="exam-input-label">2. Not</span>' +
+      '<input type="number" class="exam-input" placeholder="-" value="' + examNotes['2'] + '" onchange="setExamScore(\'' + no + '\', this.value, \'2\')"></div>' +
+      '</div>';
   } else {
-    rightSide = '<button class="s-note-btn' + (hasNote ? ' has-note' : '') + '" onclick="openNote(\'' + no + '\',\'' + student.ad + ' ' + student.soyad + '\')">' +
-      (hasNote ? '📌' : '📝') +
-    '</button>' +
-    '<div class="s-btns">' +
+    rightSide = '<button class="s-note-btn' + (hasNote ? ' has-note' : '') + '" onclick="openNote(\'' + no + '\',\'' + student.ad + ' ' + student.soyad + '\')">' + (hasNote ? '\uD83D\uDCCC' : '\uD83D\uDCDD') + '</button>' +
+      '<div class="s-btns">' +
       '<button class="s-btn s-btn-plus"  onclick="setStatus(\'' + no + '\',\'plus\')">+</button>' +
-      '<button class="s-btn s-btn-minus" onclick="setStatus(\'' + no + '\',\'minus\')">−</button>' +
-    '</div>';
+      '<button class="s-btn s-btn-minus" onclick="setStatus(\'' + no + '\',\'minus\')">\u2212</button>' +
+      '</div>';
   }
-
-  var studentNoDisplay = student.no ? student.no : '';
-  var snoHtml = studentNoDisplay ? '<div class="s-no">' + studentNoDisplay + '</div>' : '';
-
-  // YENİ: Sınav modundayken o gereksiz (boş) kutuyu CSS ile tamamen gizliyoruz
   var badgeStyle = state.inputMode === 'exam' ? ' style="display:none;"' : '';
-
   return '<div class="' + rowClass + '" id="row-' + no + '">' +
-    snoHtml +
-    '<div class="s-name-col">' +
-      '<div class="s-name">' + student.ad + ' ' + student.soyad + '</div>' +
-      histHtml +
-    '</div>' +
-    '<span class="s-score-badge"' + badgeStyle + '>' + score + '</span>' +
-    rightSide +
-  '</div>';
+    (no ? '<div class="s-no">' + no + '</div>' : '') +
+    '<div class="s-name-col"><div class="s-name">' + student.ad + ' ' + student.soyad + '</div>' + histHtml + '</div>' +
+    '<span class="s-score-badge"' + badgeStyle + '>' + score + '</span>' + rightSide + '</div>';
 }
 
 function updateRow(no) {
   var row = document.getElementById('row-' + no);
   if (!row) return;
   var activeId = state.currentHwId || '_general';
-  var st = (state.statuses[activeId] || {})[no] || null;
+  var st    = (state.statuses[activeId] || {})[no] || null;
   var examSt = (state.statuses[activeId] || {})[no + '_exam'] || null;
-
-  var targetLabel = state.currentClass.label || "İsimsiz Liste";
-  var totalPlus = 0, totalMinus = 0;
-  var examNotes = { '1': '', '2': '' };
-  
-  if (examSt) {
-     var parts = String(examSt).split('|');
-     examNotes['1'] = parts[0] || '';
-     examNotes['2'] = parts[1] || '';
-  }
-  
-  Object.keys(state.statuses).forEach(function(hwId) {
-    if (hwId !== '_general' && hwId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
-    var sStatus = state.statuses[hwId][no];
-    if (sStatus === 'plus')  totalPlus  += (state.multScores[hwId] ? state.multScores[hwId].plus  : 1);
-    if (sStatus === 'minus') totalMinus += (state.multScores[hwId] ? state.multScores[hwId].minus : 1);
-    
-    var exSt = state.statuses[hwId][no + '_exam'];
-    if (exSt && !examSt) {
-       var eParts = String(exSt).split('|');
-       if (eParts[0]) examNotes['1'] = eParts[0];
-       if (eParts[1]) examNotes['2'] = eParts[1];
-    }
-  });
-
-  // YENİ: Güncelleme yaparken de sınav modunda satırın renklenmesini engelliyoruz
+  var totals = calcStudentTotals(no);
   row.className = 's-row';
   if (state.inputMode === 'perf') {
-     if (st === 'plus') row.classList.add('done');
-     if (st === 'minus') row.classList.add('miss');
+    if (st === 'plus') row.classList.add('done');
+    if (st === 'minus') row.classList.add('miss');
   }
-
   var badge = row.querySelector('.s-score-badge');
   if (badge) {
     if (state.inputMode === 'perf') {
-       badge.style.display = ''; // Performans modunda göster
-       badge.textContent = st === 'plus' ? '+' + state.multPlus : st === 'minus' ? '−' + state.multMinus : '';
-    } else {
-       badge.style.display = 'none'; // Sınav modunda gizle
-       badge.textContent = '';
+      badge.style.display = '';
+      badge.textContent = st === 'plus' ? '+' + state.multPlus : st === 'minus' ? '\u2212' + state.multMinus : '';
+    } else { badge.style.display = 'none'; badge.textContent = ''; }
+  }
+  if (state.inputMode === 'exam') {
+    var examNotes = { '1': '', '2': '' };
+    if (examSt) { var ep = String(examSt).split('|'); examNotes['1'] = ep[0] || ''; examNotes['2'] = ep[1] || ''; }
+    var inputs = row.querySelectorAll('.exam-input');
+    if (inputs.length >= 2) {
+      if (document.activeElement !== inputs[0]) inputs[0].value = examNotes['1'];
+      if (document.activeElement !== inputs[1]) inputs[1].value = examNotes['2'];
     }
   }
-  
-  if (state.inputMode === 'exam') {
-     var inputs = row.querySelectorAll('.exam-input');
-     if (inputs.length === 2) {
-         if (document.activeElement !== inputs[0]) inputs[0].value = examNotes['1'];
-         if (document.activeElement !== inputs[1]) inputs[1].value = examNotes['2'];
-     }
-  }
-
   var histDiv = row.querySelector('.s-history');
-  if (totalPlus === 0 && totalMinus === 0) {
+  if (totals.plus === 0 && totals.minus === 0) {
     if (histDiv) histDiv.parentNode.removeChild(histDiv);
   } else {
     if (!histDiv) {
-      var nameCol = row.querySelector('.s-name-col');
-      if (nameCol) { histDiv = document.createElement('div'); histDiv.className = 's-history'; nameCol.appendChild(histDiv); }
+      var nc = row.querySelector('.s-name-col');
+      if (nc) { histDiv = document.createElement('div'); histDiv.className = 's-history'; nc.appendChild(histDiv); }
     }
     if (histDiv) {
       histDiv.innerHTML =
-        (totalPlus  > 0 ? '<span class="h-plus">+'  + totalPlus  + ' ✓</span>' : '') +
-        (totalMinus > 0 ? '<span class="h-minus">−' + totalMinus + ' ✗</span>' : '');
+        (totals.plus  > 0 ? '<span class="h-plus">+'  + totals.plus  + ' \u2713</span>' : '') +
+        (totals.minus > 0 ? '<span class="h-minus">\u2212' + totals.minus + ' \u2717</span>' : '');
     }
   }
 }
 
+// ════════════════════════════════
+// DURUM İŞLEMLERİ
+// ════════════════════════════════
 function setStatus(no, status) {
   var activeId = state.currentHwId || '_general';
   if (!state.statuses[activeId]) state.statuses[activeId] = {};
   if (!state.multScores) state.multScores = {};
   state.multScores[activeId] = { plus: state.multPlus, minus: state.multMinus };
-  
   var cur = state.statuses[activeId][no];
-  if (cur === status) { delete state.statuses[activeId][no]; }
-  else { state.statuses[activeId][no] = status; }
-  
-  updateRow(no);
-  updateTally();
-  updateQS();
+  if (cur === status) { delete state.statuses[activeId][no]; } else { state.statuses[activeId][no] = status; }
+  updateRow(no); updateTally(); updateQS();
 }
 
 function setAll(status) {
@@ -2205,15 +1983,24 @@ function setAll(status) {
   if (!state.statuses[activeId]) state.statuses[activeId] = {};
   if (!state.multScores) state.multScores = {};
   state.multScores[activeId] = { plus: state.multPlus, minus: state.multMinus };
-  var allMatch = state.students.length > 0 && state.students.every(function(s){ return state.statuses[activeId][s.no] === status; });
-  if (allMatch) {
-    state.students.forEach(function(s){ delete state.statuses[activeId][s.no]; });
-  } else {
-    state.students.forEach(function(s){ state.statuses[activeId][s.no] = status; });
-  }
-  state.students.forEach(function(s){ updateRow(s.no); });
-  updateTally();
-  updateQS();
+  var allMatch = state.students.length > 0 && state.students.every(function (s) { return state.statuses[activeId][s.no] === status; });
+  state.students.forEach(function (s) {
+    if (allMatch) { delete state.statuses[activeId][s.no]; } else { state.statuses[activeId][s.no] = status; }
+  });
+  state.students.forEach(function (s) { updateRow(s.no); });
+  updateTally(); updateQS();
+}
+
+function setExamScore(no, val, examType) {
+  var activeId = state.currentHwId || '_general';
+  if (!state.statuses[activeId]) state.statuses[activeId] = {};
+  var cur = state.statuses[activeId][no + '_exam'] || '|';
+  var parts = cur.split('|');
+  var notes = { '1': parts[0] || '', '2': parts[1] || '' };
+  notes[examType] = String(val).trim();
+  if (notes['1'] === '' && notes['2'] === '') { delete state.statuses[activeId][no + '_exam']; }
+  else { state.statuses[activeId][no + '_exam'] = notes['1'] + '|' + notes['2']; }
+  persist(); updateRow(no);
 }
 
 function updateTally() {
@@ -2221,14 +2008,11 @@ function updateTally() {
   var activeId = state.currentHwId || '_general';
   var hwSt = state.statuses[activeId] || {};
   var plus = 0, minus = 0;
-  students.forEach(function(s) {
-    if (hwSt[s.no] === 'plus')  plus++;
-    else if (hwSt[s.no] === 'minus') minus++;
-  });
+  students.forEach(function (s) { if (hwSt[s.no] === 'plus') plus++; else if (hwSt[s.no] === 'minus') minus++; });
   var blank = students.length - plus - minus;
-  document.getElementById('t-plus').textContent  = '✓ ' + plus;
-  document.getElementById('t-minus').textContent = '✗ ' + minus;
-  document.getElementById('t-blank').textContent = '— ' + blank;
+  document.getElementById('t-plus').textContent  = '\u2713 ' + plus;
+  document.getElementById('t-minus').textContent = '\u2717 ' + minus;
+  document.getElementById('t-blank').textContent = '\u2014 ' + blank;
 }
 
 function updateQS() {
@@ -2236,624 +2020,333 @@ function updateQS() {
   var activeId = state.currentHwId || '_general';
   var hwSt = state.statuses[activeId] || {};
   var plus = 0, minus = 0;
-  students.forEach(function(s) {
-    if (hwSt[s.no] === 'plus')  plus++;
-    else if (hwSt[s.no] === 'minus') minus++;
-  });
-  var blank = students.length - plus - minus;
+  students.forEach(function (s) { if (hwSt[s.no] === 'plus') plus++; else if (hwSt[s.no] === 'minus') minus++; });
   document.getElementById('qs-plus').textContent  = plus;
   document.getElementById('qs-minus').textContent = minus;
-  document.getElementById('qs-blank').textContent = blank;
+  document.getElementById('qs-blank').textContent = students.length - plus - minus;
 }
 
 // ════════════════════════════════
-// STUDENT NOTES
+// NOTLAR
 // ════════════════════════════════
 function openNote(studentNo, studentName) {
   state.noteTarget = studentNo;
-  document.getElementById('note-student-name').textContent = '👤 ' + studentName;
-  var targetLabel = state.currentClass.label || "İsimsiz Liste";
-  var noteKey = state.currentClass.id + '_' + targetLabel;
+  document.getElementById('note-student-name').textContent = '\uD83D\uDC64 ' + studentName;
+  var noteKey = state.currentClass.id + '_' + (state.currentClass.label || '\u0130simsiz Liste');
   var clsNotes = state.notes[noteKey] || {};
   document.getElementById('note-textarea').value = clsNotes[studentNo] || '';
   openOverlay('overlay-note');
-  setTimeout(function(){ document.getElementById('note-textarea').focus(); }, 200);
+  setTimeout(function () { document.getElementById('note-textarea').focus(); }, 200);
 }
 
 function saveNote() {
   var text = document.getElementById('note-textarea').value.trim();
-  var targetLabel = state.currentClass.label || "İsimsiz Liste";
-  var noteKey = state.currentClass.id + '_' + targetLabel; 
-
+  var noteKey = state.currentClass.id + '_' + (state.currentClass.label || '\u0130simsiz Liste');
   if (!state.notes[noteKey]) state.notes[noteKey] = {};
-  if (text) { state.notes[noteKey][state.noteTarget] = text; }
-  else       { delete state.notes[noteKey][state.noteTarget]; }
-  
-  persist();
-  closeOverlay('overlay-note');
-  
-  var row = document.getElementById('row-' + state.noteTarget);
-  if (row) {
-    var noteBtn = row.querySelector('.s-note-btn');
-    if (noteBtn) {
-      noteBtn.className = 's-note-btn' + (text ? ' has-note' : '');
-      noteBtn.textContent = text ? '📌' : '📝';
-    }
-  }
+  if (text) { state.notes[noteKey][state.noteTarget] = text; } else { delete state.notes[noteKey][state.noteTarget]; }
+  persist(); closeOverlay('overlay-note');
+  var noteBtn = document.querySelector('#row-' + state.noteTarget + ' .s-note-btn');
+  if (noteBtn) { noteBtn.className = 's-note-btn' + (text ? ' has-note' : ''); noteBtn.textContent = text ? '\uD83D\uDCCC' : '\uD83D\uDCDD'; }
   syncTeacherProfile();
-  notify(text ? 'Not kaydedildi 📌' : 'Not silindi.', text ? 'success' : 'info');
+  notify(text ? 'Not kaydedildi \uD83D\uDCCC' : 'Not silindi.', text ? 'success' : 'info');
 }
 
 // ════════════════════════════════
-// MANUAL STUDENT ADD/DELETE
+// ÖĞRENCİ EKLE / SİL
 // ════════════════════════════════
 function openStudentEdit() {
-  document.getElementById('edit-cls-label').textContent = state.currentClass.name + ' Sınıfı';
-  document.getElementById('se-no').value     = '';
-  document.getElementById('se-ad').value     = '';
-  document.getElementById('se-soyad').value  = '';
-  document.getElementById('se-del-no').value = '';
+  document.getElementById('edit-cls-label').textContent = state.currentClass.name + ' S\u0131n\u0131f\u0131';
+  ['se-no','se-ad','se-soyad','se-del-no'].forEach(function (id) { document.getElementById(id).value = ''; });
   openOverlay('overlay-student-edit');
 }
 
 async function addStudent() {
-  var no   = document.getElementById('se-no').value.trim();
-  var ad   = document.getElementById('se-ad').value.trim().toUpperCase();
+  var no = document.getElementById('se-no').value.trim();
+  var ad = document.getElementById('se-ad').value.trim().toUpperCase();
   var soyad = document.getElementById('se-soyad').value.trim().toUpperCase();
-  if (!no || !ad || !soyad) { notify('Lütfen tüm alanları doldurun.', 'error'); return; }
-
+  if (!no || !ad || !soyad) { notify('T\u00fcm alanlar\u0131 doldurun.', 'error'); return; }
   var btn = document.getElementById('btn-add-stu');
-  btn.disabled = true; 
-  btn.textContent = 'Ekleniyor...';
-
+  btn.disabled = true; btn.textContent = 'Ekleniyor...';
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-      body: JSON.stringify({ action: 'addStudent', className: state.currentClass.name, no: no, ad: ad, soyad: soyad })
-    });
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    notify('Öğrenci eklendi! Liste yenileniyor...', 'success');
-    closeOverlay('overlay-student-edit');
-    await openClass(state.currentClass.id); 
-  } catch(e) {
-    notify('Hata: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false; 
-    btn.textContent = 'Öğrenci Ekle ✓';
-  }
+    var resp = await fetch(API_URL, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'addStudent', className: state.currentClass.name, no: no, ad: ad, soyad: soyad }) });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    notify('\u00d6\u011frenci eklendi! Yenileniyor...', 'success');
+    closeOverlay('overlay-student-edit'); await openClass(state.currentClass.id);
+  } catch (e) { notify('Hata: ' + e.message, 'error'); }
+  btn.disabled = false; btn.textContent = '\u00d6\u011frenci Ekle \u2713';
 }
 
 function deleteStudent() {
   var no = document.getElementById('se-del-no').value.trim();
-  if (!no) { notify('Silinecek numarayı girin.', 'error'); return; }
-  document.getElementById('del-confirm-text').innerHTML = '<strong>' + no + '</strong> numaralı öğrenci kalıcı olarak silinecek.';
+  if (!no) { notify('Silinecek numaray\u0131 girin.', 'error'); return; }
+  document.getElementById('del-confirm-text').innerHTML = '<strong>' + no + '</strong> numaral\u0131 \u00f6\u011frenci kal\u0131c\u0131 olarak silinecek.';
   openOverlay('overlay-delete-confirm');
 }
 
 async function executeDeleteStudent() {
   var no = document.getElementById('se-del-no').value.trim();
   closeOverlay('overlay-delete-confirm');
-  
   var btn = document.getElementById('btn-del-stu');
-  btn.disabled = true; 
-  btn.textContent = 'Siliniyor...';
-  
+  btn.disabled = true; btn.textContent = 'Siliniyor...';
   try {
-    await fetch(API_URL, {
-      method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-      body: JSON.stringify({ action: 'deleteStudent', className: state.currentClass.name, no: no })
-    });
-    notify('Öğrenci silindi! Liste yenileniyor...', 'success');
-    closeOverlay('overlay-student-edit');
-    await openClass(state.currentClass.id);
-  } catch(e) {
-    notify('Bir hata oluştu: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false; 
-    btn.textContent = 'Sil ✕';
-  }
+    await fetch(API_URL, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteStudent', className: state.currentClass.name, no: no }) });
+    notify('\u00d6\u011frenci silindi! Yenileniyor...', 'success');
+    closeOverlay('overlay-student-edit'); await openClass(state.currentClass.id);
+  } catch (e) { notify('Hata: ' + e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Sil \u2715';
 }
 
 // ════════════════════════════════
-// SAVE RECORD
+// KAYDET
 // ════════════════════════════════
 async function saveRecord() {
-  var targetLabel = state.currentClass.label || 'İsimsiz Liste';
-  var activeId = state.currentHwId || '_general'; 
-  
+  var targetLabel = state.currentClass.label || '\u0130simsiz Liste';
+  var activeId    = state.currentHwId || '_general';
+  var hwSt        = state.statuses[activeId] || {};
   var btn = document.getElementById('btn-save');
-  btn.innerHTML = '<span class="spin"></span>Kaydediliyor...';
-  btn.classList.add('busy');
-
-  var hwSt = state.statuses[activeId] || {};
-  
+  btn.innerHTML = '<span class="spin"></span>Kaydediliyor...'; btn.classList.add('busy');
   var studentsData = [];
-  state.students.forEach(function(s) {
-    var st = hwSt[s.no] || 'blank';
-    var exSt = hwSt[s.no + '_exam'] || '';
-    
-    var hasAdded = false;
-    if (st !== 'blank') {
-      studentsData.push({ no: s.no, status: st, score: (st === 'plus' ? state.multPlus : st === 'minus' ? -state.multMinus : 0) });
-      hasAdded = true;
-    }
-    
-    // YENİ: Sınav notlarını metin formatında ve ayrı ayrı Sheets'e yolla
-// YENİ: Sınav notlarını metin formatında ve ayrı ayrı Sheets'e yolla
-    if (exSt !== '') {
-      var eParts = String(exSt).split('|');
-      
-      // 1. DÜZELTME BURADA: Güvenli String çevirimi ve trim
-      var note1 = eParts[0] ? String(eParts[0]).trim() : '';
-      var note2 = eParts[1] ? String(eParts[1]).trim() : '';
-
-      if (note1 !== '') {
-        studentsData.push({ no: s.no, status: 'Sınav 1', score: note1 });
-        hasAdded = true;
-      }
-      if (note2 !== '') {
-        studentsData.push({ no: s.no, status: 'Sınav 2', score: note2 });
-        hasAdded = true;
-      }
+  state.students.forEach(function (s) {
+    var st   = hwSt[s.no] || null;
+    var exSt = hwSt[s.no + '_exam'] || null;
+    if (st === 'plus' || st === 'minus') studentsData.push({ no: s.no, status: st, score: st === 'plus' ? state.multPlus : -state.multMinus });
+    if (exSt) {
+      var parts = String(exSt).split('|');
+      var n1 = (parts[0] || '').trim(); var n2 = (parts[1] || '').trim();
+      if (n1) studentsData.push({ no: s.no, status: 'Sinav 1', score: n1 });
+      if (n2) studentsData.push({ no: s.no, status: 'Sinav 2', score: n2 });
     }
   });
-
-  var payload = {
-    action:    'saveRecord',
-    teacher:   state.teacher,
-    className: state.currentClass.name,
-    hwName:    targetLabel,
-    date:      today(),
-    time:      new Date().toLocaleTimeString('tr-TR'),
-    multPlus:  state.multPlus,
-    multMinus: state.multMinus,
-    students:  studentsData
-  };
-
-  persist();
-
-  try {
-    const response = await fetch(API_URL, { 
-      method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) 
-    });
-    
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    notify('Google Sheets\'e kaydedildi! ✓', 'success');
-
-    if (!state.currentHwId) {
-      if (Object.keys(hwSt).length > 0) {
-        var stamp = Date.now();
-        var genId = '_general_' + state.currentClass.id + '_' + targetLabel + '_' + stamp; 
-        state.statuses[genId] = Object.assign({}, hwSt);
-        if (!state.multScores) state.multScores = {};
-        state.multScores[genId] = { plus: state.multPlus, minus: state.multMinus };
-        state.statuses['_general'] = {}; 
-        persist();
-        state.students.forEach(function(s){ updateRow(s.no); });
-        updateTally();
-        updateQS();
-      }
-    }
-    
-  } catch(e) {
-    notify('İnternet Hatası: Verileriniz telefonda güvende, tekrar deneyin.', 'error');
+  if (studentsData.length === 0) {
+    notify('Kaydedilecek veri yok! \u00d6nce not girin.', 'error', 3000);
+    btn.innerHTML = '\uD83D\uDCBE Kaydet'; btn.classList.remove('busy'); return;
   }
-
-  // YENİ: Notları hızlı profil verisi olarak buluta senkronize et
-  await syncTeacherProfile();
-
-  btn.innerHTML = '💾 Kaydet';
-  btn.classList.remove('busy');
+  var payload = {
+    action: 'saveRecord', teacher: state.teacher, className: state.currentClass.name,
+    hwName: targetLabel, date: today(), time: new Date().toLocaleTimeString('tr-TR'),
+    multPlus: state.multPlus, multMinus: state.multMinus, students: studentsData
+  };
+  persist();
+  try {
+    var resp = await fetch(API_URL, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var text = await resp.text();
+    if (text.toLowerCase().indexOf('hata') !== -1 || text.toLowerCase().indexOf('basarisiz') !== -1) throw new Error(text);
+    notify('Google Sheets\'e kaydedildi! \u2705', 'success');
+    btn.innerHTML = '\uD83D\uDCBE Kaydet';
+    if (!state.currentHwId && Object.keys(hwSt).length > 0) {
+      var stamp = Date.now();
+      var genId = '_general_' + state.currentClass.id + '_' + targetLabel + '_' + stamp;
+      state.statuses[genId] = Object.assign({}, hwSt);
+      if (!state.multScores) state.multScores = {};
+      state.multScores[genId] = { plus: state.multPlus, minus: state.multMinus };
+      state.statuses['_general'] = {}; persist();
+      state.students.forEach(function (s) { updateRow(s.no); }); updateTally(); updateQS();
+    }
+  } catch (e) {
+    notify('\u0130nternet hatas\u0131! Veriler telefonda. Tekrar basin!', 'error', 8000);
+    btn.style.background = '#dc2626'; btn.innerHTML = '\u26a0\ufe0f TEKRAR KAYDET';
+    console.error('Kay\u0131t hatas\u0131:', e.message);
+  }
+  await syncTeacherProfile(); btn.classList.remove('busy');
 }
 
 // ════════════════════════════════
-// LANG GRADE CALCULATOR
+// DİL HESAP MAKİNESİ
 // ════════════════════════════════
 function openLangCalc() {
-  var isEdebiyat = state.branch === 'Edebiyat';
-  var wy = isEdebiyat ? 70 : 50;
-  var wd = isEdebiyat ? 15 : 25;
-  var wk = isEdebiyat ? 15 : 25;
-
-  document.getElementById('w-yazili-lbl').textContent   = '%' + wy + ' ağırlık';
-  document.getElementById('w-dinleme-lbl').textContent  = '%' + wd + ' ağırlık';
-  document.getElementById('w-konusma-lbl').textContent  = '%' + wk + ' ağırlık';
-  document.getElementById('c-formula-text').innerHTML   = 'Yazılı × 0.' + wy + '<br>Dinleme × 0.' + wd + '<br>Konuşma × 0.' + wk;
-  document.getElementById('w-yazili-chip').textContent  = '× 0.' + wy;
-  document.getElementById('w-dinleme-chip').textContent = '× 0.' + wd;
-  document.getElementById('w-konusma-chip').textContent = '× 0.' + wk;
-
+  var isEdb = state.branch === 'Edebiyat';
+  var wy = isEdb ? 70 : 50; var wd = isEdb ? 15 : 25; var wk = isEdb ? 15 : 25;
+  document.getElementById('w-yazili-lbl').textContent   = '%' + wy + ' a\u011f\u0131rl\u0131k';
+  document.getElementById('w-dinleme-lbl').textContent  = '%' + wd + ' a\u011f\u0131rl\u0131k';
+  document.getElementById('w-konusma-lbl').textContent  = '%' + wk + ' a\u011f\u0131rl\u0131k';
+  document.getElementById('c-formula-text').innerHTML   = 'Yaz\u0131l\u0131 \u00d7 0.' + wy + '<br>Dinleme \u00d7 0.' + wd + '<br>Konu\u015fma \u00d7 0.' + wk;
+  document.getElementById('w-yazili-chip').textContent  = '\u00d7 0.' + wy;
+  document.getElementById('w-dinleme-chip').textContent = '\u00d7 0.' + wd;
+  document.getElementById('w-konusma-chip').textContent = '\u00d7 0.' + wk;
   openOverlay('overlay-lang-calc');
 }
 
 function calcGrade() {
-  var isEdebiyat = state.branch === 'Edebiyat';
-  var wy = isEdebiyat ? 0.70 : 0.50;
-  var wd = isEdebiyat ? 0.15 : 0.25;
-  var wk = isEdebiyat ? 0.15 : 0.25;
-
+  var isEdb = state.branch === 'Edebiyat';
+  var wy = isEdb ? 0.70 : 0.50; var wd = isEdb ? 0.15 : 0.25; var wk = isEdb ? 0.15 : 0.25;
   var y = parseFloat(document.getElementById('c-yazili').value)  || 0;
   var d = parseFloat(document.getElementById('c-dinleme').value) || 0;
   var k = parseFloat(document.getElementById('c-konusma').value) || 0;
-
-  var cy = y * wy;
-  var cd = d * wd;
-  var ck = k * wk;
-
-  document.getElementById('fc-yazili').textContent  = cy > 0 ? cy.toFixed(1) : '—';
-  document.getElementById('fc-dinleme').textContent = cd > 0 ? cd.toFixed(1) : '—';
-  document.getElementById('fc-konusma').textContent = ck > 0 ? ck.toFixed(1) : '—';
-
+  var cy = y * wy, cd = d * wd, ck = k * wk;
+  document.getElementById('fc-yazili').textContent  = cy > 0 ? cy.toFixed(1) : '\u2014';
+  document.getElementById('fc-dinleme').textContent = cd > 0 ? cd.toFixed(1) : '\u2014';
+  document.getElementById('fc-konusma').textContent = ck > 0 ? ck.toFixed(1) : '\u2014';
   var sonucEl = document.getElementById('c-sonuc');
   var gradeEl = document.getElementById('c-grade');
-
-  if (y === 0 && d === 0 && k === 0) {
-    sonucEl.textContent = '—'; gradeEl.style.display = 'none'; return;
-  }
-
+  if (y === 0 && d === 0 && k === 0) { sonucEl.textContent = '\u2014'; gradeEl.style.display = 'none'; return; }
   var total = cy + cd + ck;
   sonucEl.textContent = Number.isInteger(total) ? total : total.toFixed(2);
-
-  var grade = total >= 90 ? 'Pekiyi (AA)' : total >= 75 ? 'İyi (BB)' : total >= 60 ? 'Orta (CC)' : total >= 50 ? 'Geçer (DD)' : 'Başarısız (FF)';
-  gradeEl.textContent = grade;
-  gradeEl.style.display = 'inline-block';
+  var grade = total >= 90 ? 'Pekiyi (AA)' : total >= 75 ? '\u0130yi (BB)' : total >= 60 ? 'Orta (CC)' : total >= 50 ? 'Ge\u00e7er (DD)' : 'Ba\u015far\u0131s\u0131z (FF)';
+  gradeEl.textContent = grade; gradeEl.style.display = 'inline-block';
 }
 
 function resetCalc() {
-  ['c-yazili','c-dinleme','c-konusma'].forEach(function(id){ document.getElementById(id).value = ''; });
-  document.getElementById('c-sonuc').textContent = '—';
-  document.getElementById('c-grade').style.display = 'none';
-  ['fc-yazili','fc-dinleme','fc-konusma'].forEach(function(id){ document.getElementById(id).textContent = '—'; });
+  ['c-yazili','c-dinleme','c-konusma'].forEach(function (id) { document.getElementById(id).value = ''; });
+  document.getElementById('c-sonuc').textContent = '\u2014'; document.getElementById('c-grade').style.display = 'none';
+  ['fc-yazili','fc-dinleme','fc-konusma'].forEach(function (id) { document.getElementById(id).textContent = '\u2014'; });
 }
 
 // ════════════════════════════════
-// DOWNLOAD
+// İNDİR
 // ════════════════════════════════
-// ════════════════════════════════
-// DOWNLOAD (YENİLENMİŞ VE ÖZEL NOT KALDIRILMIŞ VERSİYON)
-// ════════════════════════════════
-function downloadExcel() {
-  if (!state.currentClass || !state.students.length) { notify('İndirilecek öğrenci bulunamadı.', 'error'); return; }
-
-  var dlType = document.getElementById('dl-content-type').value;
-  var targetLabel = state.currentClass.label || "İsimsiz Liste";
-  
-  var headerRow = ["No", "Ad", "Soyad"];
-  var fileNameSuffix = "";
-
-  if (dlType === 'perf') {
-    headerRow.push("Toplam Artı (+)", "Toplam Eksi (-)", "Net Puan");
-    fileNameSuffix = "arti_eksi_listesi";
-  } else if (dlType === 'exam') {
-    headerRow.push("1. Not", "2. Not");
-    fileNameSuffix = "sinav_notu";
-  } else {
-    headerRow.push("Toplam Artı (+)", "Toplam Eksi (-)", "Net Puan", "1. Not", "2. Not");
-    fileNameSuffix = "arti_eksi_ve_sinav";
-  }
-
-  var data = [
-    ["SINIF:", state.currentClass.name],
-    ["ÖĞRETMEN:", state.teacher],
-    ["TARİH:", today()],
-    [], 
-    headerRow
-  ];
-
-  state.students.forEach(function(s) {
-    var plus = 0, minus = 0;
-    var exam1 = "", exam2 = "";
-
-    Object.keys(state.statuses).forEach(function(hId) {
-      if (hId !== '_general' && hId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
-      
-      var st = state.statuses[hId][s.no] || "";
-      var exSt = state.statuses[hId][s.no + '_exam'] || "";
-      
-      if (st === 'plus')  plus  += (state.multScores[hId] ? state.multScores[hId].plus  : 1);
-      if (st === 'minus') minus += (state.multScores[hId] ? state.multScores[hId].minus : 1);
-      
-      if (exSt) {
-         var parts = String(exSt).split('|');
-         if (parts[0]) exam1 = parts[0];
-         if (parts[1]) exam2 = parts[1];
-      }
-    });
-
-    var rowData = [parseInt(s.no), s.ad, s.soyad];
-
-    if (dlType === 'perf') {
-      rowData.push(plus, minus, (plus - minus));
-    } else if (dlType === 'exam') {
-      rowData.push(exam1, exam2);
-    } else {
-      rowData.push(plus, minus, (plus - minus), exam1, exam2);
+function getDownloadData(studentNo) {
+  var targetLabel = state.currentClass.label || '\u0130simsiz Liste';
+  var plus = 0, minus = 0, exam1 = '', exam2 = '', e1f = false, e2f = false;
+  Object.keys(state.statuses).forEach(function (hId) {
+    if (hId !== '_general' && hId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
+    var st   = state.statuses[hId][studentNo] || '';
+    var exSt = state.statuses[hId][studentNo + '_exam'] || '';
+    if (st === 'plus')  plus  += (state.multScores[hId] ? state.multScores[hId].plus  : 1);
+    if (st === 'minus') minus += (state.multScores[hId] ? state.multScores[hId].minus : 1);
+    if (exSt) {
+      var parts = String(exSt).split('|');
+      if (parts[0] && !e1f) { exam1 = parts[0]; e1f = true; }
+      if (parts[1] && !e2f) { exam2 = parts[1]; e2f = true; }
     }
-    
-    data.push(rowData);
   });
+  return { plus: plus, minus: minus, exam1: exam1, exam2: exam2 };
+}
 
+function downloadExcel() {
+  if (!state.currentClass || !state.students.length) { notify('\u0130ndirilecek \u00f6\u011frenci yok.', 'error'); return; }
+  var dlType = document.getElementById('dl-content-type').value;
+  var headerRow = ['No', 'Ad', 'Soyad'];
+  var suffix = '';
+  if (dlType === 'perf')       { headerRow.push('Art\u0131 (+)', 'Eksi (-)', 'Net'); suffix = 'arti_eksi'; }
+  else if (dlType === 'exam')  { headerRow.push('1. Not', '2. Not'); suffix = 'sinav_notu'; }
+  else                         { headerRow.push('Art\u0131 (+)', 'Eksi (-)', 'Net', '1. Not', '2. Not'); suffix = 'tam_rapor'; }
+  var data = [['SINIF:', state.currentClass.name], ['\u00d6\u011eRETMEN:', state.teacher], ['TAR\u0130H:', today()], [], headerRow];
+  state.students.forEach(function (s) {
+    var d = getDownloadData(s.no);
+    var row = [parseInt(s.no), s.ad, s.soyad];
+    if (dlType === 'perf')       row.push(d.plus, d.minus, d.plus - d.minus);
+    else if (dlType === 'exam')  row.push(d.exam1, d.exam2);
+    else                         row.push(d.plus, d.minus, d.plus - d.minus, d.exam1, d.exam2);
+    data.push(row);
+  });
   var wb = XLSX.utils.book_new();
   var ws = XLSX.utils.aoa_to_sheet(data);
-
-  var wscols = [{ wch: 8 }, { wch: 20 }, { wch: 20 }];
-  if (dlType === 'perf') wscols.push({ wch: 15 }, { wch: 15 }, { wch: 12 });
-  else if (dlType === 'exam') wscols.push({ wch: 10 }, { wch: 10 });
-  else wscols.push({ wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 10 });
-  
-  ws['!cols'] = wscols;
-
-  XLSX.utils.book_append_sheet(wb, ws, "Rapor");
-  
-  var cleanClassName = state.currentClass.name.replace(/\//g, ' '); 
-  var fileName = cleanClassName + "_" + fileNameSuffix + ".xlsx";
-  
-  XLSX.writeFile(wb, fileName);
-
-  notify('Excel dosyası indirildi! 📊', 'success');
-  closeOverlay('overlay-download');
+  ws['!cols'] = [{ wch: 8 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Rapor');
+  XLSX.writeFile(wb, state.currentClass.name.replace(/\//g, ' ') + '_' + suffix + '.xlsx');
+  notify('Excel indirildi! \uD83D\uDCCA', 'success'); closeOverlay('overlay-download');
 }
 
 function downloadTXT() {
-  if (!state.currentClass || !state.students.length) { notify('İndirilecek öğrenci bulunamadı.', 'error'); return; }
-  
+  if (!state.currentClass || !state.students.length) { notify('\u0130ndirilecek \u00f6\u011frenci yok.', 'error'); return; }
   var dlType = document.getElementById('dl-content-type').value;
-  var targetLabel = state.currentClass.label || "İsimsiz Liste";
-  
-  var fileNameSuffix = "";
-  var reportTitleStr = "";
-
-  if (dlType === 'perf') {
-    fileNameSuffix = "arti_eksi_listesi";
-    reportTitleStr = "Performans (+/-) Raporu";
-  } else if (dlType === 'exam') {
-    fileNameSuffix = "sinav_notu";
-    reportTitleStr = "Sınav Notu Raporu";
-  } else {
-    fileNameSuffix = "arti_eksi_ve_sinav";
-    reportTitleStr = "Performans ve Sınav Raporu";
-  }
-
-  var txt = state.currentClass.name + ' Sınıfı ' + reportTitleStr + ' (' + targetLabel + ')\nTarih: ' + today() + '\n' + '-'.repeat(60) + '\n\n';
-  
-  state.students.forEach(function(s) {
-    var plus = 0, minus = 0;
-    var exam1 = "-", exam2 = "-";
-
-    Object.keys(state.statuses).forEach(function(hId) {
-      if (hId !== '_general' && hId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
-      var st = state.statuses[hId][s.no] || "";
-      var exSt = state.statuses[hId][s.no + '_exam'] || "";
-      
-      if (st === 'plus')  plus  += (state.multScores[hId] ? state.multScores[hId].plus  : 1);
-      if (st === 'minus') minus += (state.multScores[hId] ? state.multScores[hId].minus : 1);
-      
-      if (exSt) {
-         var parts = String(exSt).split('|');
-         if (parts[0] !== undefined && parts[0] !== '') exam1 = parts[0];
-         if (parts[1] !== undefined && parts[1] !== '') exam2 = parts[1];
-      }
-    });
-    
+  var titles   = { perf: 'Performans (+/-) Raporu', exam: 'Sinav Notu Raporu', both: 'Performans ve Sinav Raporu' };
+  var suffixes = { perf: 'arti_eksi', exam: 'sinav_notu', both: 'tam_rapor' };
+  var title = titles[dlType] || titles['both'];
+  var targetLabel = state.currentClass.label || '\u0130simsiz Liste';
+  var sep = Array(61).join('-');
+  var txt = state.currentClass.name + ' - ' + title + ' (' + targetLabel + ')\nTarih: ' + today() + '\n' + sep + '\n\n';
+  state.students.forEach(function (s) {
+    var d = getDownloadData(s.no);
     var line = s.no + ' - ' + s.ad + ' ' + s.soyad + '  >>  ';
-    
-    if (dlType === 'perf') {
-      line += 'Artı: ' + plus + ' | Eksi: ' + minus + ' | Net: ' + (plus - minus);
-    } else if (dlType === 'exam') {
-      line += '1. Not: ' + exam1 + ' | 2. Not: ' + exam2;
-    } else {
-      line += 'Artı: ' + plus + ' | Eksi: ' + minus + ' | Net: ' + (plus - minus) + ' | 1. Not: ' + exam1 + ' | 2. Not: ' + exam2;
-    }
-    
+    if (dlType === 'perf')       line += 'Arti: ' + d.plus + ' | Eksi: ' + d.minus + ' | Net: ' + (d.plus - d.minus);
+    else if (dlType === 'exam')  line += '1. Not: ' + (d.exam1 || '-') + ' | 2. Not: ' + (d.exam2 || '-');
+    else                         line += 'Arti: ' + d.plus + ' | Eksi: ' + d.minus + ' | Net: ' + (d.plus - d.minus) + ' | 1. Not: ' + (d.exam1 || '-') + ' | 2. Not: ' + (d.exam2 || '-');
     txt += line + '\n';
   });
-  
-  var blob = new Blob([txt], { type:'text/plain;charset=utf-8;' });
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href  = url;
-  
-  var cleanClassName = state.currentClass.name.replace(/\//g, ' ');
-  a.download = cleanClassName + "_" + fileNameSuffix + ".txt";
-  
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  notify('TXT dosyası indirildi! 📝', 'success');
-  closeOverlay('overlay-download');
+  var blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = state.currentClass.name.replace(/\//g, ' ') + '_' + (suffixes[dlType] || 'rapor') + '.txt';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+  notify('TXT indirildi! \uD83D\uDCDD', 'success'); closeOverlay('overlay-download');
 }
 
 function printList() {
-  if (!state.currentClass || !state.students.length) { notify('İndirilecek öğrenci bulunamadı.', 'error'); return; }
-  
+  if (!state.currentClass || !state.students.length) { notify('\u0130ndirilecek \u00f6\u011frenci yok.', 'error'); return; }
   var dlType = document.getElementById('dl-content-type').value;
-  var targetLabel = state.currentClass.label || "İsimsiz Liste";
-  
-  var win = window.open('', '_blank'); 
-  
-  var reportTitleStr = "";
-  if (dlType === 'perf') reportTitleStr = "Performans (+/-) Raporu";
-  else if (dlType === 'exam') reportTitleStr = "Sınav Notu Raporu";
-  else reportTitleStr = "Performans ve Sınav Raporu";
-  
-  var documentTitle = state.currentClass.name.replace(/\//g, ' ') + " - " + reportTitleStr;
-
-  // ÇOK ŞIK TABLO BAŞLIKLARI
-  var tableHeaders = '<tr><th style="width:6%; text-align:center; border-right:3px solid #cbd2dc; font-size:14px;">NO</th>';
-  tableHeaders += '<th style="width:40%; border-right:3px solid #cbd2dc; font-size:14px;">AD SOYAD</th>';
-  
-  if (dlType === 'perf' || dlType === 'both') {
-    tableHeaders += '<th style="width:15%; text-align:center; background:#ecfdf5; color:#059669; font-size:14px;">+ (ARTI)</th>';
-    tableHeaders += '<th style="width:15%; text-align:center; background:#fef2f2; color:#dc2626; font-size:14px; border-right:3px solid #cbd2dc;">- (EKSİ)</th>';
-  }
-  if (dlType === 'exam' || dlType === 'both') {
-    tableHeaders += '<th style="width:12%; text-align:center; background:#f0f6ff; color:#1a62c0; font-size:14px;">1. NOT</th>';
-    tableHeaders += '<th style="width:12%; text-align:center; background:#f0f6ff; color:#1a62c0; font-size:14px;">2. NOT</th>';
-  }
-  tableHeaders += '</tr>';
-
-  // VERİLERİN İŞLENMESİ
-  var rows = state.students.map(function(s) {
-    var plus = 0, minus = 0;
-    var exam1 = "", exam2 = "";
-
-    Object.keys(state.statuses).forEach(function(hId) {
-      if (hId !== '_general' && hId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
-      var st = state.statuses[hId][s.no] || "";
-      var exSt = state.statuses[hId][s.no + '_exam'] || "";
-      
-      if (st === 'plus')  plus  += (state.multScores[hId] ? state.multScores[hId].plus  : 1);
-      if (st === 'minus') minus += (state.multScores[hId] ? state.multScores[hId].minus : 1);
-      
-      if (exSt) {
-         var parts = String(exSt).split('|');
-         if (parts[0]) exam1 = parts[0];
-         if (parts[1]) exam2 = parts[1];
-      }
-    });
-
-    var rowHtml = '<tr><td style="font-weight:900; font-size:14px; text-align:center; color:#6b7a90; border-right:3px solid #e5e9f0;">' + s.no + '</td>';
-    rowHtml += '<td style="font-weight:800; font-size:14px; text-transform:uppercase; white-space:nowrap; border-right:3px solid #e5e9f0;">' + s.ad + ' ' + s.soyad + '</td>';
-    
-    if (dlType === 'perf' || dlType === 'both') {
-      rowHtml += '<td style="background:#f9fdfa; color:#059669; font-weight:900; text-align:center; font-size:16px;">' + (plus > 0 ? plus : '-') + '</td>';
-      rowHtml += '<td style="background:#fffcfc; color:#dc2626; font-weight:900; text-align:center; font-size:16px; border-right:3px solid #e5e9f0;">' + (minus > 0 ? minus : '-') + '</td>';
-    }
-    if (dlType === 'exam' || dlType === 'both') {
-      rowHtml += '<td style="background:#f8fbff; color:#111; font-weight:900; text-align:center; font-size:16px;">' + exam1 + '</td>';
-      rowHtml += '<td style="background:#f8fbff; color:#111; font-weight:900; text-align:center; font-size:16px;">' + exam2 + '</td>';
-    }
-    
-    rowHtml += '</tr>';
-    return rowHtml;
-
+  var targetLabel = state.currentClass.label || '\u0130simsiz Liste';
+  var titles = { perf: 'Performans (+/-) Raporu', exam: 'Sinav Notu Raporu', both: 'Performans ve Sinav Raporu' };
+  var reportTitle = titles[dlType] || titles['both'];
+  var docTitle = state.currentClass.name.replace(/\//g, ' ') + ' - ' + reportTitle;
+  var thead = '<tr><th style="width:6%;text-align:center;border-right:3px solid #cbd2dc;">NO</th><th style="width:40%;border-right:3px solid #cbd2dc;">AD SOYAD</th>';
+  if (dlType === 'perf' || dlType === 'both') thead += '<th style="width:15%;text-align:center;background:#ecfdf5;color:#059669;">+ (ARTI)</th><th style="width:15%;text-align:center;background:#fef2f2;color:#dc2626;border-right:3px solid #cbd2dc;">- (EKSI)</th>';
+  if (dlType === 'exam' || dlType === 'both') thead += '<th style="width:12%;text-align:center;background:#f0f6ff;color:#1a62c0;">1. NOT</th><th style="width:12%;text-align:center;background:#f0f6ff;color:#1a62c0;">2. NOT</th>';
+  thead += '</tr>';
+  var tbody = state.students.map(function (s) {
+    var d = getDownloadData(s.no);
+    var row = '<tr><td style="font-weight:900;text-align:center;color:#6b7a90;border-right:3px solid #e5e9f0;">' + s.no + '</td><td style="font-weight:800;text-transform:uppercase;white-space:nowrap;border-right:3px solid #e5e9f0;">' + s.ad + ' ' + s.soyad + '</td>';
+    if (dlType === 'perf' || dlType === 'both') row += '<td style="background:#f9fdfa;color:#059669;font-weight:900;text-align:center;font-size:16px;">' + (d.plus > 0 ? d.plus : '-') + '</td><td style="background:#fffcfc;color:#dc2626;font-weight:900;text-align:center;font-size:16px;border-right:3px solid #e5e9f0;">' + (d.minus > 0 ? d.minus : '-') + '</td>';
+    if (dlType === 'exam' || dlType === 'both') row += '<td style="background:#f8fbff;font-weight:900;text-align:center;font-size:16px;">' + (d.exam1 || '-') + '</td><td style="background:#f8fbff;font-weight:900;text-align:center;font-size:16px;">' + (d.exam2 || '-') + '</td>';
+    row += '</tr>'; return row;
   }).join('');
-
-  var html = '<!DOCTYPE html><html><head><title>' + documentTitle + '</title>';
-  html += '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
-  
-  html += '<style>';
-  // YENİ: @page ayarı margin: 1cm ayarlayarak "about:blank" linkinin çıktıda görünmesini engeller!
-  html += 'body { font-family: "Segoe UI", Arial, sans-serif; padding: 20px; color: #222; margin: 0 auto; background: #fff; max-width: 100%; line-height: 1.5; }';
-  html += '@media print { .no-print { display: none !important; } body { padding: 0; max-width: 100%; -webkit-print-color-adjust: exact; } @page { size: A4 portrait; margin: 1cm; } }';
-  
-  html += '.header-wrap { display: flex; align-items: center; gap: 20px; border-bottom: 3px solid #e02020; padding-bottom: 10px; margin-bottom: 20px; }';
-  html += '.logo-img { width: 75px; height: 75px; object-fit: contain; }';
-  html += '.school-name { font-size: 24px; font-weight: 900; color: #111; margin: 0; letter-spacing: -0.5px; }';
-  html += '.report-sub { font-size: 15px; color: #e02020; margin-top: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }';
-  
-  html += '.info-text { font-size: 14px; margin-bottom: 20px; color: #555; display: flex; justify-content: space-between; font-weight: 600; padding: 10px 15px; background: #f8f9fb; border-radius: 8px; border: 1px solid #e5e9f0; }';
-  
-  html += 'table { width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 2px solid #cbd2dc; }';
-  html += 'thead th { padding: 12px 10px; border-bottom: 3px solid #cbd2dc; border-top: 1px solid #cbd2dc; }';
-  html += 'tbody td { padding: 10px 10px; border-bottom: 1px solid #e5e9f0; vertical-align: middle; overflow: hidden; }';
-  html += 'tbody tr:nth-child(even) { background-color: #fcfcfd; }';
-  
-  html += '.print-btn { background: linear-gradient(135deg, #e02020, #b81818); color: #fff; border: none; padding: 14px 24px; border-radius: 10px; font-size: 16px; font-weight: 800; width: 100%; cursor: pointer; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(224,32,32,0.3); }';
-  html += '.footer-text { font-size: 11px; color: #9aaab8; text-align: center; font-weight: 600; padding-top: 15px; border-top: 1px dashed #e5e9f0; }';
-  html += '<\/style><\/head><body>';
-  
-  html += '<div class="no-print">';
-  html += '<button class="print-btn" onclick="window.print()">🖨️ PDF OLARAK KAYDET / YAZDIR</button>';
-  html += '<\/div>';
-
-  html += '<div class="header-wrap">';
-  html += '<img src="logo1.png" class="logo-img">';
-  html += '<div>';
-  html += '<div class="school-name">VEFA POYRAZ ANADOLU LİSESİ<\/div>';
-  html += '<div class="report-sub">' + state.currentClass.name + ' - ' + reportTitleStr + ' (' + targetLabel + ')<\/div>';
-  html += '<\/div>';
-  html += '<\/div>';
-
-  html += '<div class="info-text">';
-  html += '<span>🗓️ <b>Tarih:<\/b> ' + today() + '<\/span>';
-  html += '<span>👨‍🏫 <b>Öğretmen:<\/b> ' + state.teacher + '<\/span>';
-  html += '<\/div>';
-
-  html += '<table><thead>' + tableHeaders + '<\/thead><tbody>';
-  html += rows;
-  html += '<\/tbody><\/table>';
-  
-  html += '<div class="footer-text">Bu belge Vefa Poyraz A.L. Dijital Rapor Sistemi tarafından otomatik olarak oluşturulmuştur.<\/div>';
-  
-  // Script: Açıldığı an yazdırma ekranını tetikle
-  html += '<script>window.onload = function() { document.title = "' + documentTitle + '"; }<\/script>';
-  html += '<\/body><\/html>';
-
-  win.document.write(html);
-  win.document.close();
-  
-  closeOverlay('overlay-download');
+  var so = '<scr' + 'ipt>'; var sc = '</scr' + 'ipt>';
+  var html = ['<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + docTitle + '</title>',
+    '<meta name="viewport" content="width=device-width,initial-scale=1.0"><style>',
+    'body{font-family:"Segoe UI",Arial,sans-serif;padding:20px;color:#222;background:#fff;max-width:100%}',
+    '@media print{.no-print{display:none!important}body{padding:0}@page{size:A4 portrait;margin:1cm}}',
+    '.hw{display:flex;align-items:center;gap:20px;border-bottom:3px solid #e02020;padding-bottom:10px;margin-bottom:20px}',
+    '.logo-img{width:75px;height:75px;object-fit:contain}.sn{font-size:24px;font-weight:900;color:#111}',
+    '.rs{font-size:15px;color:#e02020;font-weight:700;text-transform:uppercase}',
+    '.ib{display:flex;justify-content:space-between;font-size:14px;font-weight:600;color:#555;padding:10px 15px;background:#f8f9fb;border:1px solid #e5e9f0;border-radius:8px;margin-bottom:20px}',
+    'table{width:100%;border-collapse:collapse;margin-bottom:30px;border:2px solid #cbd2dc;font-size:14px}',
+    'thead th{padding:12px 10px;border-bottom:3px solid #cbd2dc}tbody td{padding:10px;border-bottom:1px solid #e5e9f0;vertical-align:middle}',
+    'tbody tr:nth-child(even){background:#fcfcfd}',
+    '.pb{background:linear-gradient(135deg,#e02020,#b81818);color:#fff;border:none;padding:14px;border-radius:10px;font-size:16px;font-weight:800;width:100%;cursor:pointer;margin-bottom:30px}',
+    '.ft{font-size:11px;color:#9aaab8;text-align:center;padding-top:15px;border-top:1px dashed #e5e9f0}',
+    '</style></head><body>',
+    '<div class="no-print"><button class="pb" onclick="window.print()">\uD83D\uDDB8\ufe0f PDF OLARAK KAYDET / YAZDIR</button></div>',
+    '<div class="hw"><img src="logo1.png" class="logo-img" alt="VP"><div><div class="sn">VEFA POYRAZ ANADOLU L\u0130SES\u0130</div><div class="rs">' + state.currentClass.name + ' - ' + reportTitle + ' (' + targetLabel + ')</div></div></div>',
+    '<div class="ib"><span>\uD83D\uDDD3\ufe0f <b>Tarih:</b> ' + today() + '</span><span>\uD83D\uDC68\u200d\uD83C\uDFEB <b>\u00d6\u011fretmen:</b> ' + state.teacher + '</span></div>',
+    '<table><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table>',
+    '<div class="ft">Bu belge Vefa Poyraz A.L. Dijital Rapor Sistemi tarafindan otomatik olusturulmustur.</div>',
+    so + 'document.title="' + docTitle + '";' + sc,
+    '</body></html>'
+  ].join('');
+  var win = window.open('', '_blank');
+  if (!win) { notify('A\u00e7\u0131l\u0131r pencere engellendi. Taray\u0131c\u0131 izinlerini kontrol edin.', 'error', 4000); return; }
+  win.document.write(html); win.document.close(); closeOverlay('overlay-download');
 }
 
 // ════════════════════════════════
-// ANALYTICS
+// ANALİTİK
 // ════════════════════════════════
 var _charts = {};
 
 function openAnalytics() {
-  if (!state.currentClass || !state.students.length) {
-    notify('Analiz için sınıfta öğrenci olmalıdır.', 'error'); return;
-  }
+  if (!state.currentClass || !state.students.length) { notify('Analiz i\u00e7in s\u0131n\u0131fta \u00f6\u011frenci olmal\u0131d\u0131r.', 'error'); return; }
   showScreen('screen-analytics');
   document.getElementById('an-title').textContent = state.currentClass.name + ' Analizi';
-
-  var totalPlus = 0, totalMinus = 0;
-  var exam1Total = 0, exam1Count = 0;
-  var exam2Total = 0, exam2Count = 0;
+  var targetLabel = state.currentClass.label || '\u0130simsiz Liste';
+  var totalPlus = 0, totalMinus = 0, exam1Total = 0, exam1Count = 0, exam2Total = 0, exam2Count = 0;
   var sMap = {};
-  
-  state.students.forEach(function(s) {
-    sMap[s.no] = { 
-       no: s.no, 
-       name: s.ad + ' ' + s.soyad, 
-       plus: 0, 
-       minus: 0, 
-       net: 0, 
-       examAvg: null,
-       e1Val: null,  // YENİ: 1. Sınav notunu hafızada tut
-       e2Val: null   // YENİ: 2. Sınav notunu hafızada tut
-    };
+  state.students.forEach(function (s) {
+    sMap[s.no] = { no: s.no, name: s.ad + ' ' + s.soyad, plus: 0, minus: 0, net: 0, examAvg: null, e1Val: null, e2Val: null, e1Found: false, e2Found: false };
   });
-
-  var targetLabel = state.currentClass.label || "İsimsiz Liste";
-
-  Object.keys(state.statuses).forEach(function(hwId) {
+  Object.keys(state.statuses).forEach(function (hwId) {
     if (hwId !== '_general' && hwId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
-
     var hwSt = state.statuses[hwId];
-    var ms = (state.multScores && state.multScores[hwId]) ? state.multScores[hwId] : { plus:1, minus:1 };
-    
-    Object.keys(hwSt).forEach(function(no) {
-      if (no.includes('_exam')) {
-         var realNo = no.replace('_exam', '');
-         if (!sMap[realNo]) return;
-         
-         var parts = hwSt[no].split('|');
-         var e1 = parseInt(parts[0]);
-         var e2 = parseInt(parts[1]);
-         
-         var sum = 0, cnt = 0;
-         if (!isNaN(e1)) { 
-            exam1Total += e1; exam1Count++; sum += e1; cnt++; 
-            sMap[realNo].e1Val = e1; // Kaydet
-         }
-         if (!isNaN(e2)) { 
-            exam2Total += e2; exam2Count++; sum += e2; cnt++; 
-            sMap[realNo].e2Val = e2; // Kaydet
-         }
-         
-         if (cnt > 0) sMap[realNo].examAvg = sum / cnt;
+    var ms = (state.multScores && state.multScores[hwId]) ? state.multScores[hwId] : { plus: 1, minus: 1 };
+    Object.keys(hwSt).forEach(function (key) {
+      if (key.indexOf('_exam') !== -1) {
+        var realNo = key.replace('_exam', '');
+        if (!sMap[realNo]) return;
+        var parts = hwSt[key].split('|');
+        var e1 = parseInt(parts[0]), e2 = parseInt(parts[1]);
+        var sum = 0, cnt = 0;
+        if (!isNaN(e1) && !sMap[realNo].e1Found) { exam1Total += e1; exam1Count++; sum += e1; cnt++; sMap[realNo].e1Val = e1; sMap[realNo].e1Found = true; }
+        if (!isNaN(e2) && !sMap[realNo].e2Found) { exam2Total += e2; exam2Count++; sum += e2; cnt++; sMap[realNo].e2Val = e2; sMap[realNo].e2Found = true; }
+        if (cnt > 0) sMap[realNo].examAvg = sum / cnt;
       } else {
-         if (!sMap[no]) return;
-         if (hwSt[no] === 'plus')  { sMap[no].plus  += ms.plus;  totalPlus  += ms.plus;  }
-         if (hwSt[no] === 'minus') { sMap[no].minus += ms.minus; totalMinus += ms.minus; }
+        if (!sMap[key]) return;
+        if (hwSt[key] === 'plus')  { sMap[key].plus  += ms.plus;  totalPlus  += ms.plus; }
+        if (hwSt[key] === 'minus') { sMap[key].minus += ms.minus; totalMinus += ms.minus; }
       }
     });
   });
-
-  var studentStats = Object.values(sMap);
-  studentStats.forEach(function(s){ s.net = s.plus - s.minus; });
-
+  var stats = Object.values(sMap);
+  stats.forEach(function (s) { s.net = s.plus - s.minus; });
   document.getElementById('an-plus').textContent  = totalPlus;
   document.getElementById('an-minus').textContent = totalMinus;
   var total = totalPlus + totalMinus;
@@ -2861,318 +2354,153 @@ function openAnalytics() {
   var rateEl = document.getElementById('an-rate');
   rateEl.textContent = '%' + rate;
   rateEl.style.color = rate >= 50 ? 'var(--green)' : 'var(--red-score)';
-
-// ════════ DİNAMİK SINAV İSTATİSTİKLERİ ════════
-// ════════ DİNAMİK SINAV İSTATİSTİKLERİ ════════
-  // ════════ DİNAMİK SINAV İSTATİSTİKLERİ ════════
-  var totalExamScore = exam1Total + exam2Total;
-  var totalExamCount = exam1Count + exam2Count;
-  var combinedAvgStr = totalExamCount > 0 ? (totalExamScore / totalExamCount).toFixed(1) : '—';
-  
-  var oldExamKpi = document.getElementById('dynamic-exam-kpi');
-  if (oldExamKpi) oldExamKpi.remove();
-  var oldTopExams = document.getElementById('dynamic-exam-top-card');
-  if (oldTopExams) oldTopExams.remove();
-  
-  // 1. DÜZELTME: Bu kutu artık not girilmese bile (içi boş da olsa) HER ZAMAN ekranda görünecek!
-  var examKpiHtml = '<div class="kpi-box kpi-blue"><span class="kpi-n">' + combinedAvgStr + '</span><span class="kpi-l">Sınıf Sınav Ortalaması</span></div>';
-  
-  var newExamKpi = document.createElement('div');
-  newExamKpi.id = 'dynamic-exam-kpi';
-  newExamKpi.className = 'kpi-row';
-  newExamKpi.style.gridTemplateColumns = '1fr'; 
-  newExamKpi.innerHTML = examKpiHtml;
-  
-  var firstKpiRow = document.querySelector('#screen-analytics .kpi-row');
-  firstKpiRow.parentNode.insertBefore(newExamKpi, firstKpiRow.nextSibling);
-  
-  // 2. DÜZELTME: İlk 5 öğrenci listesi SADECE not girilmişse ortaya çıkacak.
-  if (totalExamCount > 0) {
-    var topExams = studentStats.filter(function(s){ return s.examAvg !== null; }).sort(function(a,b){ return b.examAvg - a.examAvg; }).slice(0, 5);
+  var examTotal = exam1Total + exam2Total, examCount = exam1Count + exam2Count;
+  var avgStr = examCount > 0 ? (examTotal / examCount).toFixed(1) : '\u2014';
+  ['dynamic-exam-kpi','dynamic-exam-top-card'].forEach(function (id) { var el = document.getElementById(id); if (el) el.remove(); });
+  var kpiDiv = document.createElement('div');
+  kpiDiv.id = 'dynamic-exam-kpi'; kpiDiv.className = 'kpi-row'; kpiDiv.style.gridTemplateColumns = '1fr';
+  kpiDiv.innerHTML = '<div class="kpi-box kpi-blue"><span class="kpi-n">' + avgStr + '</span><span class="kpi-l">S\u0131n\u0131f S\u0131nav Ortalamas\u0131</span></div>';
+  var firstKpi = document.querySelector('#screen-analytics .kpi-row');
+  firstKpi.parentNode.insertBefore(kpiDiv, firstKpi.nextSibling);
+  if (examCount > 0) {
+    var topExams = stats.filter(function (s) { return s.examAvg !== null; }).sort(function (a, b) { return b.examAvg - a.examAvg; }).slice(0, 5);
     if (topExams.length > 0) {
-       var topExamsHtml = '<div class="analytics-title exam-top-title">🏆 En Yüksek Sınav Ortalamaları</div><div class="analytics-sub">Sınav ve Sözlü notu ortalaması en yüksek öğrenciler</div><div class="risk-list">';
-       
-       topExamsHtml += topExams.map(function(s) {
-         var e1Str = s.e1Val !== null ? s.e1Val : '-';
-         var e2Str = s.e2Val !== null ? s.e2Val : '-';
-         var displayNote = e1Str + ' / ' + e2Str;
-         
-         return '<div class="risk-item exam-item">' +
-                  '<div class="risk-name">' + s.name + ' <span style="font-size:11px; opacity:0.7;">(No: ' + s.no + ')</span></div>' +
-                  '<div style="text-align:right;">' +
-                    '<div class="exam-note" style="font-size:12px; font-weight:800; font-family:var(--font-mono); margin-bottom:2px;">' + displayNote + '</div>' + 
-                    '<div class="risk-badge">Ort: ' + s.examAvg.toFixed(1) + '</div>' +
-                  '</div>' +
-                '</div>';
-       }).join('');
-       
-       topExamsHtml += '</div>';
-
-       var wrapper = document.createElement('div');
-       wrapper.id = 'dynamic-exam-top-card';
-       wrapper.className = 'analytics-card exam-top-card';
-       wrapper.innerHTML = topExamsHtml;
-       
-       var analyticsScroll = document.querySelector('#screen-analytics .page-scroll');
-       analyticsScroll.appendChild(wrapper);
+      var topHtml = '<div class="analytics-title exam-top-title">\uD83C\uDFC6 En Y\u00fcksek S\u0131nav Ortalamalar\u0131</div><div class="analytics-sub">S\u0131nav ortalamas\u0131 en y\u00fcksek \u00f6\u011frenciler</div><div class="risk-list">' +
+        topExams.map(function (s) {
+          return '<div class="risk-item exam-item"><div class="risk-name">' + s.name + ' <span style="font-size:11px;opacity:.7;">(No: ' + s.no + ')</span></div>' +
+            '<div style="text-align:right;"><div class="exam-note" style="font-size:12px;font-weight:800;">' + (s.e1Val !== null ? s.e1Val : '-') + ' / ' + (s.e2Val !== null ? s.e2Val : '-') + '</div>' +
+            '<div class="risk-badge">Ort: ' + s.examAvg.toFixed(1) + '</div></div></div>';
+        }).join('') + '</div>';
+      var topCard = document.createElement('div');
+      topCard.id = 'dynamic-exam-top-card'; topCard.className = 'analytics-card exam-top-card'; topCard.innerHTML = topHtml;
+      document.querySelector('#screen-analytics .page-scroll').appendChild(topCard);
     }
   }
-// ════════════════════════════════════════════════
-// ════════════════════════════════════════════════
-  // ════════════════════════════════════════════════
-
-  var isDark     = document.body.classList.contains('dark');
-  var textColor  = isDark ? '#e6edf3' : '#374557';
-  var gridColor  = isDark ? '#30363d' : '#e5e9f0';
-  var fontFamily = "'Plus Jakarta Sans', sans-serif";
-
-  Object.keys(_charts).forEach(function(k){ if (_charts[k]) { _charts[k].destroy(); _charts[k] = null; } });
-
-  var ctxD = document.getElementById('chart-donut').getContext('2d');
-  _charts.donut = new Chart(ctxD, {
-    type:'doughnut',
-    data:{
-      labels:['Artı (Yaptı)', 'Eksi (Yapmadı)'],
-      datasets:[{ data:[totalPlus, totalMinus], backgroundColor:['#059669','#dc2626'], borderWidth:2, borderColor:isDark?'#161b22':'#fff' }]
-    },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:textColor, font:{ family:fontFamily } } } } }
+  var isDark = document.body.classList.contains('dark');
+  var textColor = isDark ? '#e6edf3' : '#374557';
+  var gridColor = isDark ? '#30363d' : '#e5e9f0';
+  var ff = "'Plus Jakarta Sans', sans-serif";
+  Object.keys(_charts).forEach(function (k) { if (_charts[k]) { _charts[k].destroy(); _charts[k] = null; } });
+  _charts.donut = new Chart(document.getElementById('chart-donut').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: ['Art\u0131 (Yapt\u0131)', 'Eksi (Yapmad\u0131)'], datasets: [{ data: [totalPlus, totalMinus], backgroundColor: ['#059669','#dc2626'], borderWidth: 2, borderColor: isDark ? '#161b22' : '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textColor, font: { family: ff } } } } }
   });
-
-  var top10 = studentStats.slice().sort(function(a,b){ return b.net-a.net; }).slice(0,10);
-  var ctxB  = document.getElementById('chart-top10').getContext('2d');
-  _charts.top10 = new Chart(ctxB, {
-    type:'bar',
-    data:{
-      labels: top10.map(function(s){ return s.name; }),
-      datasets:[
-        { label:'Artı ✓',  data:top10.map(function(s){ return s.plus; }),  backgroundColor:'#059669', borderRadius:4 },
-        { label:'Eksi ✗',  data:top10.map(function(s){ return s.minus; }), backgroundColor:'#dc2626', borderRadius:4 }
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{
-        x:{ ticks:{ color:textColor, font:{ family:fontFamily } }, grid:{ display:false } },
-        y:{ ticks:{ color:textColor, stepSize:1 }, grid:{ color:gridColor }, beginAtZero:true, suggestedMax:5 }
-      },
-      plugins:{ legend:{ labels:{ color:textColor, font:{ family:fontFamily } } } }
-    }
+  var top10 = stats.slice().sort(function (a, b) { return b.net - a.net; }).slice(0, 10);
+  _charts.top10 = new Chart(document.getElementById('chart-top10').getContext('2d'), {
+    type: 'bar',
+    data: { labels: top10.map(function (s) { return s.name; }), datasets: [{ label: 'Art\u0131 \u2713', data: top10.map(function (s) { return s.plus; }), backgroundColor: '#059669', borderRadius: 4 }, { label: 'Eksi \u2717', data: top10.map(function (s) { return s.minus; }), backgroundColor: '#dc2626', borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: textColor, font: { family: ff } }, grid: { display: false } }, y: { ticks: { color: textColor, stepSize: 1 }, grid: { color: gridColor }, beginAtZero: true } }, plugins: { legend: { labels: { color: textColor, font: { family: ff } } } } }
   });
-
-  var bottom5 = studentStats.slice()
-    .filter(function(s) { return s.net <= -2; })
-    .sort(function(a,b) { return a.net - b.net; })
-    .slice(0,5);
-    
+  var bottom5 = stats.filter(function (s) { return s.net <= -2; }).sort(function (a, b) { return a.net - b.net; }).slice(0, 5);
   var riskEl = document.getElementById('an-risk-list');
-  if (bottom5.length === 0) {
-    riskEl.innerHTML = '<div style="font-size:12px;color:var(--green);font-weight:700;text-align:center;padding:10px;">🎉 Riskli (Neti -2 veya daha altı) öğrenci yok!</div>';
-  } else {
-    riskEl.innerHTML = bottom5.map(function(s) {
-      return '<div class="risk-item"><div class="risk-name">' + s.name + ' <span style="color:var(--gray-400);font-size:11px;">(No: ' + s.no + ')</span></div><div class="risk-badge">Net: ' + s.net + ' (✗ ' + s.minus + ')</div></div>';
-    }).join('');
-  }
-
+  riskEl.innerHTML = bottom5.length === 0
+    ? '<div style="font-size:12px;color:var(--green);font-weight:700;text-align:center;padding:10px;">\uD83C\uDF89 Riskli \u00f6\u011frenci yok!</div>'
+    : bottom5.map(function (s) { return '<div class="risk-item"><div class="risk-name">' + s.name + ' <span style="color:var(--gray-400);font-size:11px;">(No: ' + s.no + ')</span></div><div class="risk-badge">Net: ' + s.net + ' (\u2717 ' + s.minus + ')</div></div>'; }).join('');
   var myClasses = getMyClasses();
-  var s1 = document.getElementById('cmp1');
-  var s2 = document.getElementById('cmp2');
-  s1.innerHTML = '';
-  s2.innerHTML = '<option value="none">— Karşılaştırma Yok —</option>';
-  myClasses.forEach(function(c) {
-    s1.innerHTML += '<option value="' + c.id + '">' + c.name + ' (' + (c.label || 'İsimsiz') + ')</option>';
-    s2.innerHTML += '<option value="' + c.id + '">' + c.name + ' (' + (c.label || 'İsimsiz') + ')</option>';
+  var s1el = document.getElementById('cmp1'); var s2el = document.getElementById('cmp2');
+  s1el.innerHTML = ''; s2el.innerHTML = '<option value="none">\u2014 Kar\u015f\u0131la\u015ft\u0131rma Yok \u2014</option>';
+  myClasses.forEach(function (c) {
+    var opt = '<option value="' + c.id + '">' + c.name + ' (' + (c.label || '\u0130simsiz') + ')</option>';
+    s1el.innerHTML += opt; s2el.innerHTML += opt;
   });
-  s1.value = state.currentClass.id;
-  s2.value = 'none';
-  updateCompareChart();
+  s1el.value = state.currentClass.id; s2el.value = 'none'; updateCompareChart();
 }
 
 function closeAnalytics() {
-  if (state.currentClass) { showScreen('screen-assignment'); }
-  else { showDashboard(); }
+  if (state.currentClass) showScreen('screen-assignment'); else showDashboard();
+}
+
+function updateCompareChart() {
+  var id1 = document.getElementById('cmp1').value; var id2 = document.getElementById('cmp2').value;
+  var c1 = state.classes.find(function (c) { return c.id === id1; });
+  var c2 = state.classes.find(function (c) { return c.id === id2; });
+  if (_charts.compare) { _charts.compare.destroy(); _charts.compare = null; }
+  function getStats(cls) {
+    if (!cls) return { name: 'Se\u00e7ilmedi', plus: 0, minus: 0, net: 0, examAvg: 0 };
+    var plus = 0, minus = 0, examSum = 0, examCnt = 0;
+    var label = cls.label || '\u0130simsiz Liste';
+    Object.keys(state.statuses).forEach(function (hwId) {
+      if (hwId !== '_general' && hwId.indexOf(cls.id + '_' + label) === -1) return;
+      var hwSt = state.statuses[hwId];
+      var ms = (state.multScores && state.multScores[hwId]) ? state.multScores[hwId] : { plus: 1, minus: 1 };
+      Object.keys(hwSt).forEach(function (no) {
+        if (no.indexOf('_exam') !== -1) { var parts = hwSt[no].split('|'); var e1 = parseInt(parts[0]), e2 = parseInt(parts[1]); if (!isNaN(e1)) { examSum += e1; examCnt++; } if (!isNaN(e2)) { examSum += e2; examCnt++; } }
+        else { if (hwSt[no] === 'plus') plus += ms.plus; if (hwSt[no] === 'minus') minus += ms.minus; }
+      });
+    });
+    return { name: cls.name, plus: plus, minus: minus, net: plus - minus, examAvg: examCnt > 0 ? parseFloat((examSum / examCnt).toFixed(1)) : 0 };
+  }
+  var s1 = getStats(c1); var s2 = id2 !== 'none' ? getStats(c2) : { name: 'Se\u00e7ilmedi', plus: 0, minus: 0, net: 0, examAvg: 0 };
+  var isDark = document.body.classList.contains('dark');
+  var textColor = isDark ? '#e6edf3' : '#374557'; var gridColor = isDark ? '#30363d' : '#e5e9f0';
+  _charts.compare = new Chart(document.getElementById('chart-compare').getContext('2d'), {
+    type: 'bar',
+    data: { labels: ['Art\u0131 \u2713', 'Eksi \u2717', 'Net Puan', 'S\u0131nav Ort.'], datasets: [{ label: s1.name, data: [s1.plus, s1.minus, s1.net, s1.examAvg], backgroundColor: '#3b82f6', borderRadius: 4 }, { label: s2.name, data: [s2.plus, s2.minus, s2.net, s2.examAvg], backgroundColor: '#94a3b8', borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: textColor }, grid: { display: false } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } }, plugins: { legend: { labels: { color: textColor } } } }
+  });
 }
 
 // ════════════════════════════════
-// OVERLAYS
+// OVERLAY
 // ════════════════════════════════
 function openOverlay(id) {
   document.getElementById(id).classList.add('open');
-  setTimeout(function() {
-    var inp = document.querySelector('#' + id + ' input:not([type=number]), #' + id + ' textarea');
-    if (inp) inp.focus();
-  }, 180);
+  setTimeout(function () { var inp = document.querySelector('#' + id + ' input:not([type=number]), #' + id + ' textarea'); if (inp) inp.focus(); }, 180);
 }
-
-function closeOverlay(id) {
-  document.getElementById(id).classList.remove('open');
-}
-
-// Close on backdrop click
-document.querySelectorAll('.overlay').forEach(function(o) {
-  o.addEventListener('click', function(e) {
-    if (e.target === this) closeOverlay(this.id);
-  });
-});
-
-// Enter key shortcuts
-document.getElementById('new-class-input').addEventListener('keydown', function(e){ if(e.key==='Enter') saveClass(); });
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(function (o) { o.addEventListener('click', function (e) { if (e.target === this) closeOverlay(this.id); }); });
+document.getElementById('new-class-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') saveClass(); });
 
 // ════════════════════════════════
-// ÖZEL BİLDİRİM FONKSİYONU (Standart confirm ve alert yerine)
+// ONAY KUTUSU
 // ════════════════════════════════
-function showCustomConfirm(title, msg, icon, onConfirm, showCancel = true) {
+function showCustomConfirm(title, msg, icon, onConfirm, showCancel) {
+  if (showCancel === undefined) showCancel = true;
   document.getElementById('ca-title').textContent = title;
-  document.getElementById('ca-msg').innerHTML = msg;
-  document.getElementById('ca-icon').textContent = icon;
-  
-  var btnCancel = document.getElementById('ca-cancel');
-  btnCancel.style.display = showCancel ? 'block' : 'none';
-  
-  var btnConfirm = document.getElementById('ca-confirm');
-  btnConfirm.onclick = function() {
-    closeCustomAlert();
-    if(onConfirm) onConfirm();
-  };
-  
+  document.getElementById('ca-msg').innerHTML     = msg;
+  document.getElementById('ca-icon').textContent  = icon;
+  document.getElementById('ca-cancel').style.display = showCancel ? 'block' : 'none';
+  document.getElementById('ca-confirm').onclick = function () { closeCustomAlert(); if (onConfirm) onConfirm(); };
   document.getElementById('custom-alert-box').classList.add('active');
 }
-
-function closeCustomAlert() {
-  document.getElementById('custom-alert-box').classList.remove('active');
-}
+function closeCustomAlert() { document.getElementById('custom-alert-box').classList.remove('active'); }
 
 // ════════════════════════════════
-// BULUT SENKRONİZASYONU (Sınıflar ve Notlar İçin)
+// BULUT SENKRONIZASYONU
 // ════════════════════════════════
 async function syncTeacherProfile() {
-  if(!state.teacher) return;
-  var payload = {
-    action: 'saveTeacherData',
-    teacher: state.teacher,
-    // DÜZELTME: Sınıfları ve notları (statuses ve multScores) tek bir fişek gibi pakete koyuyoruz!
-    jsonData: JSON.stringify({ 
-      classes: state.classes, 
-      notes: state.notes,
-      statuses: state.statuses,
-      multScores: state.multScores 
-    })
-  };
+  if (!state.teacher) return;
+  var myClasses = getMyClasses(); var myClassIds = myClasses.map(function (c) { return c.id; });
+  var myStatuses = {}, myMultScores = {}, myNotes = {};
+  Object.keys(state.statuses).forEach(function (key) { if (key === '_general' || myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myStatuses[key] = state.statuses[key]; });
+  Object.keys(state.multScores || {}).forEach(function (key) { if (key === '_general' || myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myMultScores[key] = state.multScores[key]; });
+  Object.keys(state.notes).forEach(function (key) { if (myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myNotes[key] = state.notes[key]; });
   try {
-    await fetch(API_URL, { 
-      method: 'POST', mode: 'cors', redirect: 'follow',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-      body: JSON.stringify(payload) 
-    });
-  } catch(e) { console.log('Profil eşitleme başarısız (arka plan)'); }
+    await fetch(API_URL, { method: 'POST', mode: 'cors', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'saveTeacherData', teacher: state.teacher, jsonData: JSON.stringify({ classes: myClasses, notes: myNotes, statuses: myStatuses, multScores: myMultScores }) }) });
+  } catch (e) { console.log('Bulut senkronizasyonu basarisiz:', e.message); }
 }
 
 async function loadTeacherProfile(teacherName) {
   try {
     var url = API_URL + '?action=getTeacherData&teacher=' + encodeURIComponent(teacherName) + '&_t=' + Date.now();
-    var resp = await fetch(url);
-    var text = await resp.text(); 
-    if (!text || text.trim() === '' || text.trim() === 'null') return; 
+    var resp = await fetch(url); if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var text = await resp.text();
+    if (!text || text.trim() === '' || text.trim() === 'null') return;
+    if (text.indexOf('HATA:') === 0 || text.indexOf('Error') === 0) { console.warn('Backend:', text); return; }
     var data = JSON.parse(text);
-    if (data) {
-      state.classes = data.classes || [];
-      state.notes = data.notes || {};
-      // DÜZELTME: Buluttan gelirken notları da anında belleğe alıyoruz
-      state.statuses = data.statuses || {};
-      state.multScores = data.multScores || {};
-      persist(); 
+    if (data && typeof data === 'object') {
+      state.classes = data.classes || []; state.notes = data.notes || {};
+      state.statuses = data.statuses || {}; state.multScores = data.multScores || {};
+      persist(); console.log('Profil yuklendi:', state.classes.length, 'sinif');
     }
-  } catch(e) { console.log('Profil çekme başarısız: ' + e.message); }
-}
-
-function updateCompareChart() {
-  var id1 = document.getElementById('cmp1').value;
-  var id2 = document.getElementById('cmp2').value;
-
-  var c1 = state.classes.find(c => c.id === id1);
-  var c2 = state.classes.find(c => c.id === id2);
-
-  var ctx = document.getElementById('chart-compare').getContext('2d');
-  
-  // Eğer daha önceden çizilmiş bir grafik varsa temizle
-  if (_charts.compare) { _charts.compare.destroy(); }
-
-  // Sınıfın verilerini hesaplayan alt fonksiyon
-  function getStats(cls) {
-     if (!cls) return { name: 'Seçilmedi', plus: 0, minus: 0, net: 0, examAvg: 0 };
-     var plus = 0, minus = 0;
-     var sumExam = 0, countExam = 0;
-     var targetLabel = cls.label || "İsimsiz Liste";
-
-     Object.keys(state.statuses).forEach(function(hwId) {
-       if (hwId !== '_general' && hwId.indexOf(cls.id + '_' + targetLabel) !== -1) {
-         var hwSt = state.statuses[hwId];
-         var ms = (state.multScores && state.multScores[hwId]) ? state.multScores[hwId] : { plus:1, minus:1 };
-         
-         Object.keys(hwSt).forEach(function(no) {
-           if (no.includes('_exam')) {
-              var parts = hwSt[no].split('|');
-              var e1 = parseInt(parts[0]);
-              var e2 = parseInt(parts[1]);
-              if (!isNaN(e1)) { sumExam += e1; countExam++; }
-              if (!isNaN(e2)) { sumExam += e2; countExam++; }
-           } else {
-              if (hwSt[no] === 'plus') plus += ms.plus;
-              if (hwSt[no] === 'minus') minus += ms.minus;
-           }
-         });
-       }
-     });
-     
-     // Sınav ortalamasını hesapla (Senin istediğin gibi tek bir ortalama)
-     var avg = countExam > 0 ? (sumExam / countExam).toFixed(1) : 0;
-     return { name: cls.name, plus: plus, minus: minus, net: plus - minus, examAvg: avg };
-  }
-
-  var s1 = getStats(c1);
-  var s2 = id2 !== 'none' ? getStats(c2) : { name: 'Seçilmedi', plus: 0, minus: 0, net: 0, examAvg: 0 };
-
-  var isDark = document.body.classList.contains('dark');
-  var textColor = isDark ? '#e6edf3' : '#374557';
-  var gridColor = isDark ? '#30363d' : '#e5e9f0';
-
-  // Grafiği Çiz
-  _charts.compare = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['Artı ✓', 'Eksi ✗', 'Net Puan', 'Sınav Ort.'],
-      datasets: [
-        {
-          label: s1.name,
-          data: [s1.plus, s1.minus, s1.net, s1.examAvg],
-          backgroundColor: '#3b82f6',
-          borderRadius: 4
-        },
-        {
-          label: s2.name,
-          data: [s2.plus, s2.minus, s2.net, s2.examAvg],
-          backgroundColor: '#94a3b8', // 2. sınıfı gri tonlarda gösterir
-          borderRadius: 4
-        }
-      ]
-    },
-    options: {
-      responsive: true, 
-      maintainAspectRatio: false,
-      scales: {
-        x: { ticks: { color: textColor, font: {family: "'Plus Jakarta Sans', sans-serif"} }, grid: { display: false } },
-        y: { ticks: { color: textColor }, grid: { color: gridColor } }
-      },
-      plugins: { legend: { labels: { color: textColor, font: {family: "'Plus Jakarta Sans', sans-serif"} } } }
-    }
-  });
+  } catch (e) { console.error('Profil yuklenemedi:', e.message); }
 }
 
 // ════════════════════════════════
-// UTILS
+// YARDIMCILAR
 // ════════════════════════════════
-function today() {
-  return new Date().toLocaleDateString('tr-TR');
-}
+function today() { return new Date().toLocaleDateString('tr-TR'); }
 
 </script>
 </body>
