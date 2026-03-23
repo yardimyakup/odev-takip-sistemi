@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 
-<link rel="icon" type="image/x-icon" href="Adsız tasarım.png">
+<link rel="icon" type="image/x-icon" href="logo-dark.png">
 <style>
 /* ═══════════════════════════════════════
    CSS VARIABLES & BASE
@@ -294,7 +294,7 @@ body.dark .f-input, body.dark .f-select { background:var(--gray-100); }
 /* ═══════════════════════════════════════
    DASHBOARD
 ═══════════════════════════════════════ */
-.page-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.page-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; }
 
 .dash-hero {
   background:linear-gradient(135deg, var(--red) 0%, #c41818 50%, #9b0f0f 100%);
@@ -894,6 +894,41 @@ body.dark .exam-item { background: #172554 !important; border-color: #1e3a8a !im
 body.dark .exam-item .risk-name { color: #93c5fd !important; }
 body.dark .exam-item .exam-note { color: #60a5fa !important; }
 body.dark .exam-item .risk-badge { background: #2563eb !important; }
+/* ═══════════════════════════════════════
+   GEÇMİŞ YÖNETİMİ (AKORDİYON)
+═══════════════════════════════════════ */
+.history-list { max-height: 300px; overflow-y: auto; margin-top: 10px; padding-bottom: 10px; }
+.hist-group { margin-bottom: 12px; background: var(--card); border: 1.5px solid var(--border); border-radius: var(--r-sm); overflow: hidden; box-shadow: var(--shadow-xs); }
+.hist-summary { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; font-size: 13px; font-weight: 800; cursor: pointer; list-style: none; background: var(--gray-50); user-select: none; }
+body.dark .hist-summary { background: var(--gray-100); }
+.hist-summary::-webkit-details-marker { display: none; } /* Ok işaretini gizler */
+.hist-content { padding: 10px; display: flex; flex-direction: column; gap: 8px; border-top: 1.5px solid var(--border); }
+.history-item { display:flex; justify-content:space-between; align-items:center; background:var(--card); padding:10px 14px; border:1px solid var(--border); border-radius:var(--r-sm); }
+.history-date { font-size:11.5px; font-weight:700; color:var(--gray-500); }
+.history-badge { font-family: var(--font-mono); padding:4px 10px; border-radius:20px; font-size:12px; font-weight:900; min-width: 44px; text-align: center;}
+.history-badge.plus { background:var(--green-light); color:var(--green); border:1px solid var(--green-border); }
+.history-badge.minus { background:var(--red-score-bg); color:var(--red-score); border:1px solid var(--red-score-border); }
+.history-actions { display:flex; gap:6px; }
+.hist-btn { width:32px; height:32px; border:none; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.15s; font-size:14px; }
+.hist-btn-toggle { background:var(--gray-100); color:var(--gray-700); border: 1px solid var(--border); }
+.hist-btn-toggle:active { transform: scale(0.9); }
+.hist-btn-del { background:var(--red-score-bg); color:var(--red-score); border: 1px solid var(--red-score-border); }
+.hist-btn-del:active { transform: scale(0.9); }
+
+/* Rehber Fotoğraf Çerçevesi */
+.rehber-foto {
+  width: 100%;
+  display: block;
+  border: 3px solid var(--card); /* İç fotoğraf çerçevesi hissi */
+  border-radius: var(--r-sm);
+  box-shadow: 0 0 0 1px var(--border), 0 6px 16px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+}
+body.dark .rehber-foto {
+  border-color: var(--gray-100);
+  box-shadow: 0 0 0 1px var(--border), 0 6px 16px rgba(0,0,0,0.4);
+}
+
 </style>
 </head>
 <body>
@@ -904,11 +939,8 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
 <!-- ══════════════════════════════════════
      LOGIN SCREEN
 ══════════════════════════════════════ -->
-<div id="screen-login" class="screen active">
-
- 
-
- <div class="login-card">
+<div id="screen-login" class="screen">
+  <div class="login-card">
     <div class="login-logo">
       <div class="login-badge" style="background: transparent; box-shadow: none;">
         <img src="./logo1.png" alt="Vefa Poyraz Lisesi" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(224,32,32,0.3));">
@@ -917,13 +949,10 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
       <div class="login-subtitle">Ödev Takip Sistemi</div>
     </div>
     <div class="login-divider"></div>
-
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-giris" onclick="switchTab('giris')">Giriş Yap</button>
       <button class="auth-tab" id="tab-kayit" onclick="switchTab('kayit')">Kayıt Ol</button>
     </div>
-
-    <!-- GİRİŞ FORMU -->
     <div id="form-giris">
       <label class="f-label">Ad Soyad</label>
       <input class="f-input" id="li-name" type="text" placeholder="Adınızı ve soyadınızı girin" autocomplete="name">
@@ -934,8 +963,6 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
       </div>
       <button class="btn-login" id="btn-giris" onclick="doLogin()">Giriş Yap →</button>
     </div>
-
-    <!-- KAYIT FORMU -->
     <div id="form-kayit" style="display:none;">
       <div class="f-row">
         <div>
@@ -967,7 +994,6 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
       </div>
       <button class="btn-login" id="btn-kayit" onclick="doRegister()">Kayıt Ol →</button>
     </div>
-
     <div class="login-err" id="login-err"></div>
   </div>
 </div>
@@ -976,9 +1002,9 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
      DASHBOARD SCREEN
 ══════════════════════════════════════ -->
 <div id="screen-dashboard" class="screen">
-<div class="topbar">
+  <div class="topbar">
     <div class="topbar-brand">
-     <div class="topbar-logo" style="background: transparent; box-shadow: none;">
+      <div class="topbar-logo" style="background: transparent; box-shadow: none;">
         <img class="logo-light" src="./logo2.png" alt="VP" style="width: 100%; height: 100%; object-fit: contain;">
         <img class="logo-dark" src="./logo-dark.png" alt="VP" style="width: 100%; height: 100%; object-fit: contain; display: none;">
       </div>
@@ -991,7 +1017,7 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
       <button class="icon-btn" id="theme-btn-dash" onclick="toggleTheme()" title="Tema Değiştir">🌙</button>
       <div class="user-chip" onclick="openLogout()">
         <div class="user-avatar" id="dash-avatar">?</div>
-        <div class="user-name"  id="dash-name">Öğretmen</div>
+        <div class="user-name" id="dash-name">Öğretmen</div>
       </div>
     </div>
   </div>
@@ -1017,7 +1043,6 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
       </div>
     </div>
 
-    <!-- Dil hesaplama aracı (sadece dil branşı için) -->
     <div id="lang-tool-wrap" style="display:none;">
       <div class="tool-banner" onclick="openLangCalc()">
         <div class="tb-icon">🧮</div>
@@ -1035,14 +1060,188 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
       </div>
       <div class="section-actions">
         <button class="btn-sm btn-ghost" id="btn-edit" onclick="toggleEditMode()">✏️ Düzenle</button>
-        <button class="btn-sm btn-red"   onclick="openAddClass()">+ Sınıf</button>
+        <button class="btn-sm btn-red" onclick="openAddClass()">+ Sınıf</button>
       </div>
     </div>
 
-    <div class="class-grid" id="class-grid"></div>
-    <div style="height:32px;"></div>
+<div class="class-grid" id="class-grid"></div>
+
+    <div id="rehber-banner" style="
+      margin: 20px 14px 8px;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      opacity: 0.75;
+      transition: opacity 0.2s;
+      position: relative;
+    " onclick="openRehber()">
+      <div style="width:38px;height:38px;border-radius:10px;background:var(--red-light);border:1px solid var(--red-mid);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📖</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:800;color:var(--text);">Kullanım Rehberi</div>
+        <div style="font-size:11px;color:var(--gray-400);font-weight:500;margin-top:1px;">Fotoğraflı adım adım anlatım →</div>
+      </div>
+      <button onclick="kapatRehberBanner(event)" style="
+        width:22px;height:22px;border-radius:50%;border:none;
+        background:var(--gray-200);color:var(--gray-500);
+        font-size:11px;font-weight:900;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;
+        flex-shrink:0;
+      ">✕</button>
+    </div>
+
+    <div id="rehber-bottom-link" style="display:none; margin-top: auto; text-align:center; padding: 30px 15px 10px; font-size: 13px; font-weight: 700; color: var(--gray-500); cursor: pointer; transition: 0.2s;" onclick="openRehber()" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--gray-500)'">
+      📖 Kullanım Rehberini Görüntüle
+    </div>
+
+    <div style="height: 32px;"></div>
+  </div><!-- /page-scroll -->
+</div><!-- /screen-dashboard -->
+
+<!-- REHBER OVERLAY — dashboard dışında, body içinde -->
+<div id="overlay-rehber" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(10,15,28,0.65);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding:0;overflow-y:auto;">
+  <button onclick="closeRehber()" style="position:fixed;top:14px;right:14px;z-index:910;width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.25);">✕</button>
+  <div style="background:var(--card);width:100%;max-width:520px;min-height:100vh;padding:0 0 60px 0;position:relative;">
+    <div style="background:linear-gradient(135deg,var(--red),var(--red-dark));padding:28px 20px 22px;color:#fff;">
+      <div style="font-size:11px;font-weight:700;opacity:0.75;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">📖 KULLANIM REHBERİ</div>
+      <div style="font-size:22px;font-weight:900;letter-spacing:-0.5px;">Sistemi nasıl kullanırsınız?</div>
+      <div style="font-size:12px;opacity:0.72;margin-top:5px;font-weight:500;">Adım adım fotoğraflı anlatım</div>
+    </div>
+    <div style="padding:0 0 10px 0;">
+
+      <div style="border-bottom:1.5px solid var(--border);">
+        <div style="padding:16px 18px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:var(--red-light);border:1px solid var(--red-mid);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🏫</div>
+          <div style="font-size:14px;font-weight:800;color:var(--text);">1. Sınıf Nasıl Eklenir?</div>
+        </div>
+        <div style="padding:0 18px 16px;font-size:13px;line-height:1.7;color:var(--text-soft);">
+          <p>Ana sayfadaki kırmızı <b style="color:var(--text);">+ Sınıf</b> butonuna tıklayın. Açılan pencerede sınıf adını (Örn: 9A) ve listenin amacını girin.</p>
+        </div>
+        <div style="margin:0 18px 16px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);">
+          <img src="./Ekran görüntüsü 2026-03-23 210419.png" class="rehber-foto">
+        </div>
+      </div>
+
+      <div style="border-bottom:1.5px solid var(--border);">
+        <div style="padding:16px 18px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:var(--red-light);border:1px solid var(--red-mid);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🎓</div>
+          <div style="font-size:14px;font-weight:800;color:var(--text);">2. Öğrenci Nasıl Eklenir?</div>
+        </div>
+        <div style="padding:0 18px 16px;font-size:13px;line-height:1.7;color:var(--text-soft);">
+          <p>Sınıfa girdikten sonra sağ üstteki <b style="color:var(--text);">⚙️ Düzenle</b> butonuna basın. Öğrencinin okul numarası, adı ve soyadını girerek ekleyin.</p>
+        </div>
+        <div style="margin:0 18px 16px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);">
+          <img src="./Ekran görüntüsü 2026-03-23 211252.png"class="rehber-foto">
+        </div>
+      </div>
+
+      <div style="border-bottom:1.5px solid var(--border);">
+        <div style="padding:16px 18px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:var(--green-light);border:1px solid var(--green-border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">⚡</div>
+          <div style="font-size:14px;font-weight:800;color:var(--text);">3. Artı / Eksi Nasıl Verilir?</div>
+        </div>
+        <div style="padding:0 18px 16px;font-size:13px;line-height:1.7;color:var(--text-soft);">
+          <p>Öğrenci satırının sağındaki <b style="color:var(--green);">yeşil (+)</b> ve <b style="color:var(--red-score);">kırmızı (−)</b> butonları kullanın.</p>
+          <p style="margin-top:6px;"><b style="color:var(--text);">⚡ Puan Çarpanı:</b> Üst bardaki çarpanı 3 yaparsanız tek tıkla 3 puan birden verebilirsiniz.</p>
+        </div>
+        <div style="margin:0 18px 16px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);">
+          <img src="./Ekran görüntüsü 2026-03-23 211501.png"class="rehber-foto">
+        </div>
+      </div>
+
+      <div style="border-bottom:1.5px solid var(--border);">
+        <div style="padding:16px 18px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:#fef9c3;border:1px solid #fde68a;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🕒</div>
+          <div style="font-size:14px;font-weight:800;color:var(--text);">4. Geçmiş Puan Nasıl Düzenlenir?</div>
+        </div>
+        <div style="padding:0 18px 16px;font-size:13px;line-height:1.7;color:var(--text-soft);">
+          <p>Öğrencinin yanındaki <b style="color:var(--text);">📝 not ikonuna</b> tıklayın, ardından <b style="color:var(--text);">🕒 Geçmiş Performansı Yönet</b> butonuna basın.</p>
+        </div>
+        <div style="margin:0 18px 16px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);">
+          <img src="./Ekran görüntüsü 2026-03-23 211614.png"class="rehber-foto">
+        </div>
+      </div>
+
+      <div style="border-bottom:1.5px solid var(--border);">
+        <div style="padding:16px 18px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:#e0f2fe;border:1px solid #bae6fd;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📥</div>
+          <div style="font-size:14px;font-weight:800;color:var(--text);">5. Liste Nasıl İndirilir?</div>
+        </div>
+        <div style="padding:0 18px 16px;font-size:13px;line-height:1.7;color:var(--text-soft);">
+          <p>Sınıf ekranında sağ üstteki <b style="color:var(--text);">📥 İndir</b> butonuna basın. Excel, TXT veya PDF seçin.</p>
+        </div>
+        <div style="margin:0 18px 16px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);">
+          <img src="./Ekran görüntüsü 2026-03-23 211713.png" class="rehber-foto">
+        </div>
+      </div>
+
+      <div>
+        <div style="padding:16px 18px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:var(--red-score-bg);border:1px solid var(--red-score-border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">⚠️</div>
+          <div style="font-size:14px;font-weight:800;color:var(--red-score);">Sık Karşılaşılan Sorunlar</div>
+        </div>
+        <div style="padding:0 18px 20px;display:flex;flex-direction:column;gap:10px;">
+          <div style="background:var(--gray-50);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;">
+            <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:4px;">💾 "Hafıza Dolu" hatası alıyorum</div>
+            <div style="font-size:12px;color:var(--text-soft);line-height:1.6;">Sayfanın altındaki <b>Kaydet</b> butonuna basın. Veriler buluta aktarılır ve telefon hafızası temizlenir.</div>
+          </div>
+          <div style="background:var(--gray-50);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;">
+            <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:4px;">🗑️ Öğrenciyi yanlışlıkla sildim</div>
+            <div style="font-size:12px;color:var(--text-soft);line-height:1.6;">Silme işlemi kalıcıdır. Tekrar eklerseniz geçmiş puanlar geri gelmez.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
-</div>
+</div><!-- /overlay-rehber -->
+
+<script>
+function openRehber() {
+  var o = document.getElementById('overlay-rehber');
+  o.style.display = 'flex';
+  o.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+function closeRehber() {
+  document.getElementById('overlay-rehber').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('overlay-rehber').addEventListener('click', function(e) {
+  if (e.target === this) closeRehber();
+});
+
+function kapatRehberBanner(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('rehber-banner').style.display = 'none';
+  document.getElementById('rehber-bottom-link').style.display = 'block';
+  // Kullanıcının kapattığını tarayıcıya kaydediyoruz
+  localStorage.setItem('vpAL3_rehber_gizli', 'true');
+}
+
+function checkRehberDurum() {
+  var banner = document.getElementById('rehber-banner');
+  var bottomLink = document.getElementById('rehber-bottom-link');
+  if (banner && bottomLink) {
+    if (localStorage.getItem('vpAL3_rehber_gizli') === 'true') {
+      banner.style.display = 'none';
+      bottomLink.style.display = 'block';
+    } else {
+      banner.style.display = 'flex';
+      bottomLink.style.display = 'none';
+    }
+  }
+}
+</script>
+
+<!-- ══════════════════════════════════════
+     ASSIGNMENT SCREEN
+══════════════════════════════════════ -->
+
 
 <!-- ══════════════════════════════════════
      ASSIGNMENT SCREEN
@@ -1297,10 +1496,38 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
       <button class="sheet-close" onclick="closeOverlay('overlay-note')">✕</button>
     </div>
     <div class="note-student-name" id="note-student-name">—</div>
+    
+    <button class="btn-full" onclick="openHistoryOverlay()" style="margin-bottom: 12px; background: var(--gray-100); color: var(--gray-700); border: 1.5px solid var(--border);">
+       🕒 Geçmiş Performansı Yönet
+    </button>
+
     <textarea class="note-textarea" id="note-textarea" placeholder="Bu öğrenci için not ekleyin (davranış, katılım, performans...)"></textarea>
     <div class="sheet-actions" style="margin-top:12px;">
       <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-note')">İptal</button>
       <button class="btn-full btn-full-red" onclick="saveNote()">Kaydet ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay center" id="overlay-history">
+  <div class="sheet centered" style="max-width:420px;text-align:left;">
+    <div class="sheet-header">
+      <div class="sheet-title">🕒 Geçmiş ve Puan Yönetimi</div>
+      <button class="sheet-close" onclick="closeHistoryOverlay()">✕</button>
+    </div>
+    <div class="note-student-name" id="history-student-name" style="background: transparent; padding: 0; margin-bottom: 8px;">—</div>
+    <div style="font-size:11px; color:var(--gray-400); margin-bottom: 12px;">Öğrenciye anında puan ekleyebilir veya geçmişini tek tek düzenleyebilirsiniz.</div>
+    
+    <div style="display:flex; gap:10px; margin-bottom: 16px;">
+       <button class="btn-full" style="background:var(--green-light); color:var(--green); border:1px solid var(--green-border); padding:10px;" onclick="addQuickScore('plus')">+1 Artı Ekle</button>
+       <button class="btn-full" style="background:var(--red-score-bg); color:var(--red-score); border:1px solid var(--red-score-border); padding:10px;" onclick="addQuickScore('minus')">+1 Eksi Ekle</button>
+    </div>
+
+    <div class="history-list" id="history-list-container">
+       </div>
+
+    <div class="sheet-actions" style="margin-top:16px;">
+      <button class="btn-full btn-full-red" onclick="closeHistoryOverlay()">Bitti ✓</button>
     </div>
   </div>
 </div>
@@ -1412,7 +1639,7 @@ body.dark .exam-item .risk-badge { background: #2563eb !important; }
 // ════════════════════════════════
 // SABITLER
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbwCxVHdZOAXTT1nuJCqlN6M8lR-TGXMTptMHZ6e1x82_aTSx-PlZtyw7mM76JeWx_h7/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyzNE6UCQ6LB3P2vXZ00sGDwUR2aD59kPsasQ5yMQGKjNCOpiLTuy5H55swsDBteJIM/exec";
 const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
 const BRANCH_LABELS = { Edebiyat: 'T\u00fcrk Dili ve Edebiyat\u0131', Ingilizce: '\u0130ngilizce', Fransizca: 'Frans\u0131zca' };
 const STORAGE_KEY = 'vpAL3';
@@ -1678,6 +1905,7 @@ function renderDashboard() {
       '<button class="cc-del" onclick="deleteClass(\'' + c.id + '\',event)">\u2715</button>' +
     '</div>';
   }).join('');
+  checkRehberDurum();
 }
 
 function getMyClasses() { return state.classes.filter(function (c) { return c.teacher === state.teacher; }); }
@@ -1711,23 +1939,27 @@ function openAddClass() {
 async function saveClass() {
   var raw      = document.getElementById('new-class-input').value.trim();
   var labelRaw = document.getElementById('new-class-label').value.trim();
-  var listLabel = labelRaw || '\u0130simsiz Liste';
-  if (!raw) { notify('S\u0131n\u0131f ad\u0131 bo\u015f olamaz.', 'error'); return; }
-  // FIX: Use unicode escapes instead of literal Turkish chars in regex
-  // \u00C7=Ç \u011E=Ğ \u0130=İ \u00D6=Ö \u015E=Ş \u00DC=Ü
-  var name = raw.replace(/\s+/g, '').toUpperCase()
-               .replace(/^(\d+)([A-Z\u00C7\u011E\u0130\u00D6\u015E\u00DC])$/, '$1/$2');
-  if (!name) { notify('Ge\u00e7erli bir s\u0131n\u0131f ad\u0131 girin. (\u00d6rn: 9A)', 'error'); return; }
+  var listLabel = labelRaw || 'İsimsiz Liste';
+  if (!raw) { notify('Sınıf adı boş olamaz.', 'error'); return; }
+  
+  // TÜRKÇE KARAKTER DÜZELTMESİ (i -> İ, ı -> I yapıp büyütüyoruz)
+  var name = raw.replace(/\s+/g, '')
+                .replace(/i/g, 'İ')
+                .replace(/ı/g, 'I')
+                .toUpperCase()
+                .replace(/^(\d+)([A-Z\u00C7\u011E\u0130\u00D6\u015E\u00DC])$/, '$1/$2');
+                
+  if (!name) { notify('Geçerli bir sınıf adı girin. (Örn: 9A)', 'error'); return; }
   var myClasses = getMyClasses();
-  if (myClasses.find(function (c) { return c.name === name && (c.label || '\u0130simsiz Liste') === listLabel; })) {
+  if (myClasses.find(function (c) { return c.name === name && (c.label || 'İsimsiz Liste') === listLabel; })) {
     notify('"' + name + ' - ' + listLabel + '" zaten mevcut.', 'error'); return;
   }
   var newClass = { id: 'c_' + Date.now(), name: name, label: listLabel, teacher: state.teacher };
   state.classes.push(newClass); state.homeworks[newClass.id] = [];
   persist(); closeOverlay('overlay-class'); renderDashboard();
-  notify('Buluta kaydediliyor... \u23f3', 'info', 1500);
+  notify('Buluta kaydediliyor... ⏳', 'info', 1500);
   await syncTeacherProfile();
-  notify(name + ' s\u0131n\u0131f\u0131 eklendi! \uD83C\uDF89', 'success');
+  notify(name + ' sınıfı eklendi! 🎉', 'success');
 }
 
 function deleteClass(id, ev) {
@@ -1977,6 +2209,203 @@ function setStatus(no, status) {
   if (cur === status) { delete state.statuses[activeId][no]; } else { state.statuses[activeId][no] = status; }
   updateRow(no); updateTally(); updateQS();
 }
+
+
+// ════════════════════════════════
+// GEÇMİŞ (HISTORY) YÖNETİMİ & PUAN KONTROLÜ
+// ════════════════════════════════
+var historyTargetNo = null;
+
+function openHistoryOverlay() {
+  historyTargetNo = state.noteTarget; 
+  document.getElementById('history-student-name').textContent = document.getElementById('note-student-name').textContent;
+  closeOverlay('overlay-note'); 
+  openOverlay('overlay-history'); 
+  renderHistoryList(); 
+}
+
+function closeHistoryOverlay() {
+  closeOverlay('overlay-history');
+}
+
+// ÇARPANLI REKORU ÖĞRENCİYE ÖZEL KLONLAMA (Güvenlik Yamalı)
+function isolateStudent(hwId, no) {
+  var hwData = state.statuses[hwId];
+  if (!hwData || !hwData[no]) return hwId;
+
+  // Güvenlik: multScores objesi hiç yoksa (eski kayıtsa) oluştur.
+  if (!state.multScores) state.multScores = {};
+  if (!state.multScores[hwId]) state.multScores[hwId] = { plus: 1, minus: 1 };
+
+  var keys = Object.keys(hwData).filter(function(k) { return k.indexOf('_exam') === -1; });
+  if (keys.length === 1 && keys[0] === no) return hwId; // Zaten sadece bu öğrenciye ait
+
+  // Başka öğrenciler de varsa, bu öğrenciyi o kayıttan söküp yeni bir kayda taşıyoruz
+  var newHwId = hwId + '_iso_' + Date.now() + Math.floor(Math.random()*1000);
+  state.statuses[newHwId] = {};
+  state.statuses[newHwId][no] = hwData[no];
+  state.multScores[newHwId] = { plus: state.multScores[hwId].plus, minus: state.multScores[hwId].minus };
+  
+  delete state.statuses[hwId][no]; // Eski kayıttan sil
+  
+  // Hafıza Temizliği: Eski kayıt tamamen boşaldıysa objeyi de yok et
+  if (Object.keys(state.statuses[hwId]).filter(function(k){ return k.indexOf('_exam') === -1; }).length === 0) {
+      delete state.statuses[hwId];
+      delete state.multScores[hwId];
+  }
+  
+  return newHwId;
+}
+
+// 1 Puan Ekleme Tuşları İçin
+async function addQuickScore(type, doSync) {
+  if(doSync === undefined) doSync = true;
+  var no = historyTargetNo;
+  var targetLabel = state.currentClass.label || 'İsimsiz Liste';
+  var newHwId = '_general_' + state.currentClass.id + '_' + targetLabel + '_' + Date.now() + Math.floor(Math.random()*1000);
+  
+  state.statuses[newHwId] = {};
+  state.statuses[newHwId][no] = type;
+  if (!state.multScores) state.multScores = {};
+  state.multScores[newHwId] = {plus: 1, minus: 1};
+  
+  if(doSync) {
+    persist(); updateRow(no); updateTally(); updateQS(); renderHistoryList();
+    notify(type === 'plus' ? '+1 Artı eklendi.' : '+1 Eksi eklendi.', 'success', 1500);
+    await syncTeacherProfile();
+  }
+}
+
+// Geçmiş Listesini "1'er 1'er" Parçalayarak Çizdirme
+function renderHistoryList() {
+  var no = historyTargetNo;
+  var targetLabel = state.currentClass.label || 'İsimsiz Liste';
+  var prefix = state.currentClass.id + '_' + targetLabel;
+  var hPlus = [], hMinus = [];
+  var sumPlus = 0, sumMinus = 0;
+
+  Object.keys(state.statuses).forEach(function(hwId) {
+    if (hwId !== '_general' && hwId.indexOf(prefix) !== -1) {
+      var st = state.statuses[hwId][no];
+      if (st === 'plus' || st === 'minus') {
+        var ts = parseInt(hwId.split('_').pop());
+        var ms = (state.multScores && state.multScores[hwId]) ? state.multScores[hwId] : { plus: 1, minus: 1 };
+        var dateObj = new Date(ts);
+        var dateStr = ('0'+dateObj.getDate()).slice(-2)+'.'+('0'+(dateObj.getMonth()+1)).slice(-2)+' - '+('0'+dateObj.getHours()).slice(-2)+':'+('0'+dateObj.getMinutes()).slice(-2);
+        
+        if(st === 'plus') { 
+          for(var k=0; k<ms.plus; k++) { hPlus.push({hwId: hwId, val: '+1', dateStr: dateStr, ts: ts}); }
+          sumPlus += ms.plus; 
+        } else { 
+          for(var k=0; k<ms.minus; k++) { hMinus.push({hwId: hwId, val: '−1', dateStr: dateStr, ts: ts}); }
+          sumMinus += ms.minus; 
+        }
+      }
+    }
+  });
+
+  hPlus.sort(function(a,b){return b.ts - a.ts});
+  hMinus.sort(function(a,b){return b.ts - a.ts});
+
+  var container = document.getElementById('history-list-container');
+  if(hPlus.length === 0 && hMinus.length === 0) {
+     container.innerHTML = '<div style="text-align:center; padding:30px 10px; color:var(--gray-400); font-size:13px; font-weight:600; border: 2px dashed var(--border); border-radius: var(--r-sm);">Kayıtlı geçmiş performans bulunamadı.</div>';
+     return;
+  }
+
+  var html = '';
+  if(hPlus.length > 0) {
+     html += '<details class="hist-group" open><summary class="hist-summary"><div style="display:flex; align-items:center; gap:8px;"><span>Artılar</span> <span class="history-badge plus">+' + sumPlus + '</span></div><button class="hist-btn hist-btn-del" onclick="deleteAllGroup(\'plus\', event)" style="width:auto; padding:0 10px; font-size:11px; font-weight:800;">Tümünü Sil</button></summary><div class="hist-content">';
+     hPlus.forEach(function(h) { html += '<div class="history-item"><div style="display:flex; align-items:center; gap:12px;"><span class="history-badge plus">'+h.val+'</span><span class="history-date">'+h.dateStr+'</span></div><div class="history-actions"><button class="hist-btn hist-btn-toggle" onclick="toggleHistoryRecord(\''+h.hwId+'\', \''+no+'\')" title="1 Artıyı Eksiye Çevir">🔄</button><button class="hist-btn hist-btn-del" onclick="deleteHistoryRecord(\''+h.hwId+'\', \''+no+'\')" title="1 Puan Sil">🗑️</button></div></div>'; });
+     html += '</div></details>';
+  }
+
+  if(hMinus.length > 0) {
+     html += '<details class="hist-group" open><summary class="hist-summary"><div style="display:flex; align-items:center; gap:8px;"><span>Eksiler</span> <span class="history-badge minus">−' + sumMinus + '</span></div><button class="hist-btn hist-btn-del" onclick="deleteAllGroup(\'minus\', event)" style="width:auto; padding:0 10px; font-size:11px; font-weight:800;">Tümünü Sil</button></summary><div class="hist-content">';
+     hMinus.forEach(function(h) { html += '<div class="history-item"><div style="display:flex; align-items:center; gap:12px;"><span class="history-badge minus">'+h.val+'</span><span class="history-date">'+h.dateStr+'</span></div><div class="history-actions"><button class="hist-btn hist-btn-toggle" onclick="toggleHistoryRecord(\''+h.hwId+'\', \''+no+'\')" title="1 Eksiyi Artıya Çevir">🔄</button><button class="hist-btn hist-btn-del" onclick="deleteHistoryRecord(\''+h.hwId+'\', \''+no+'\')" title="1 Puan Sil">🗑️</button></div></div>'; });
+     html += '</div></details>';
+  }
+  container.innerHTML = html;
+}
+
+// SADECE "1" PUANI DÖNDÜRME
+async function toggleHistoryRecord(hwId, no) {
+  var isoId = isolateStudent(hwId, no); 
+  var st = state.statuses[isoId][no];
+  var ms = state.multScores[isoId];
+
+  if (st === 'plus') {
+     if (ms.plus > 1) { ms.plus -= 1; addQuickScore('minus', false); } 
+     else { state.statuses[isoId][no] = 'minus'; } 
+  } else {
+     if (ms.minus > 1) { ms.minus -= 1; addQuickScore('plus', false); }
+     else { state.statuses[isoId][no] = 'plus'; }
+  }
+
+  persist(); updateRow(no); updateTally(); updateQS(); renderHistoryList();
+  notify('1 Puan başarıyla dönüştürüldü.', 'info', 1500);
+  await syncTeacherProfile();
+}
+
+// SADECE "1" PUANI SİLME (Güvenlik Yamalı)
+async function deleteHistoryRecord(hwId, no) {
+  var isoId = isolateStudent(hwId, no);
+  var st = state.statuses[isoId][no];
+  var ms = state.multScores[isoId];
+
+  if (st === 'plus') {
+     if (ms.plus > 1) { ms.plus -= 1; }
+     else { 
+         delete state.statuses[isoId][no]; 
+         delete state.statuses[isoId]; // Hafıza Temizliği
+         delete state.multScores[isoId];
+     }
+  } else {
+     if (ms.minus > 1) { ms.minus -= 1; }
+     else { 
+         delete state.statuses[isoId][no]; 
+         delete state.statuses[isoId]; // Hafıza Temizliği
+         delete state.multScores[isoId];
+     }
+  }
+
+  persist(); updateRow(no); updateTally(); updateQS(); renderHistoryList();
+  notify('1 Puan silindi.', 'error', 1500);
+  await syncTeacherProfile();
+}
+
+// Tüm Grubu Tek Seferde Silme (Güvenlik Yamalı)
+function deleteAllGroup(type, event) {
+  event.preventDefault(); 
+  var no = historyTargetNo;
+  var title = type === 'plus' ? 'Tüm Artıları Sil' : 'Tüm Eksileri Sil';
+  var msg = type === 'plus' ? 'Öğrencinin bu listedeki <b>tüm artılarını</b> silmek istediğinize emin misiniz?' : 'Öğrencinin bu listedeki <b>tüm eksilerini</b> silmek istediğinize emin misiniz?';
+  
+  showCustomConfirm(title, msg, '🗑️', async function() {
+    var targetLabel = state.currentClass.label || 'İsimsiz Liste';
+    var prefix = state.currentClass.id + '_' + targetLabel;
+    var changed = false;
+    Object.keys(state.statuses).forEach(function(hwId) {
+      if (hwId !== '_general' && hwId.indexOf(prefix) !== -1 && state.statuses[hwId][no] === type) {
+        delete state.statuses[hwId][no];
+        
+        // Hafıza Temizliği: O ödev klasöründe başka kimse kalmadıysa klasörü komple sil
+        if (Object.keys(state.statuses[hwId]).filter(function(k){ return k.indexOf('_exam') === -1; }).length === 0) {
+            delete state.statuses[hwId];
+            if (state.multScores) delete state.multScores[hwId];
+        }
+        changed = true;
+      }
+    });
+
+    if(changed) {
+      persist(); updateRow(no); updateTally(); updateQS(); renderHistoryList();
+      notify(type === 'plus' ? 'Tüm artılar silindi.' : 'Tüm eksiler silindi.', 'info', 2000);
+      await syncTeacherProfile();
+    }
+  });
+}
+
 
 function setAll(status) {
   var activeId = state.currentHwId || '_general';
@@ -2425,8 +2854,17 @@ function updateCompareChart() {
       var hwSt = state.statuses[hwId];
       var ms = (state.multScores && state.multScores[hwId]) ? state.multScores[hwId] : { plus: 1, minus: 1 };
       Object.keys(hwSt).forEach(function (no) {
-        if (no.indexOf('_exam') !== -1) { var parts = hwSt[no].split('|'); var e1 = parseInt(parts[0]), e2 = parseInt(parts[1]); if (!isNaN(e1)) { examSum += e1; examCnt++; } if (!isNaN(e2)) { examSum += e2; examCnt++; } }
-        else { if (hwSt[no] === 'plus') plus += ms.plus; if (hwSt[no] === 'minus') minus += ms.minus; }
+      if (no.indexOf('_exam') !== -1) { 
+          // GÜVENLİK YAMASI: Veriyi zorla String'e (Metin) çevirip parçalıyoruz.
+          var parts = String(hwSt[no]).split('|'); 
+          var e1 = parseInt(parts[0]), e2 = parseInt(parts[1]); 
+          if (!isNaN(e1)) { examSum += e1; examCnt++; } 
+          if (!isNaN(e2)) { examSum += e2; examCnt++; } 
+        } 
+        else { 
+          if (hwSt[no] === 'plus') plus += ms.plus; 
+          if (hwSt[no] === 'minus') minus += ms.minus; 
+        }
       });
     });
     return { name: cls.name, plus: plus, minus: minus, net: plus - minus, examAvg: examCnt > 0 ? parseFloat((examSum / examCnt).toFixed(1)) : 0 };
