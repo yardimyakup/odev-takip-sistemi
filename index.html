@@ -10,6 +10,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 
 <link rel="icon" type="image/x-icon" href="logo-dark.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <style>
 /* ═══════════════════════════════════════
    CSS VARIABLES & BASE
@@ -929,6 +931,144 @@ body.dark .rehber-foto {
   box-shadow: 0 0 0 1px var(--border), 0 6px 16px rgba(0,0,0,0.4);
 }
 
+/* ═══════════════════════════════════════
+   SEATING PLAN (OTURMA PLANI)
+═══════════════════════════════════════ */
+.seating-wrap {
+  padding: 12px;
+  background: var(--gray-50);
+  flex: 1;
+  overflow: auto;
+}
+body.dark .seating-wrap { background: var(--bg); }
+
+/* Ana layout: sıralar solda, öğretmen masası sağda */
+.seating-main-layout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-height: 200px;
+}
+
+/* Sol: öğrenci sıraları */
+.seating-rows-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Tek bir sıra = 2 yan yana masa */
+/* Sıra = yatay uzun çizgi */
+.seating-row {
+  display: flex;
+  gap: 0;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+  flex: 1;
+}
+
+.desk-pair {
+  display: contents; /* artık görsel wrapper değil, sadece mantıksal */
+}
+.desk-pair.empty-desk {
+  display: contents;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Masa içindeki koltuk */
+.desk-seat {
+  flex: 1;
+  padding: 7px 5px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+}
+.desk-seat:last-child { border-right: none; }
+
+.desk-seat-no {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--gray-400);
+  margin-bottom: 2px;
+  font-family: var(--font-mono);
+}
+.desk-seat-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  word-break: break-word;
+}
+.desk-seat-empty {
+  font-size: 9px;
+  color: var(--gray-300);
+  font-style: italic;
+}
+
+/* Düzenleme modu: select */
+.desk-seat select {
+  width: 100%;
+  font-size: 10px;
+  padding: 3px 2px;
+  border: 1.5px solid var(--red-mid);
+  border-radius: 6px;
+  background: var(--red-light);
+  color: var(--red-dark);
+  font-weight: 700;
+  outline: none;
+  -webkit-appearance: none;
+  text-align: center;
+}
+body.dark .desk-seat select {
+  background: var(--gray-100);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Sağ: öğretmen masası — dikey şerit */
+.teacher-desk-vertical {
+  width: 40px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, var(--gray-700) 0%, #2d3748 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 16px 0;
+  box-shadow: var(--shadow-sm);
+  min-height: 120px;
+  align-self: stretch;
+}
+body.dark .teacher-desk-vertical {
+  background: linear-gradient(180deg, #374151 0%, #1f2937 100%);
+}
+
+/* Sıra numarası etiketi */
+.row-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  text-align: center;
+}
 </style>
 </head>
 <body>
@@ -1179,6 +1319,19 @@ body.dark .rehber-foto {
         </div>
       </div>
 
+      <div style="border-bottom:1.5px solid var(--border);">
+        <div style="padding:16px 18px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:#ede9fe;border:1px solid #c4b5fd;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🪑</div>
+          <div style="font-size:14px;font-weight:800;color:var(--text);">6. Oturma Planı Nasıl Yapılır?</div>
+        </div>
+        <div style="padding:0 18px 16px;font-size:13px;line-height:1.7;color:var(--text-soft);">
+          <p>Sınıf ekranında <b style="color:var(--text);">🪑 Oturma Planı</b> butonuna tıklayın. Açılan ekranda <b style="color:var(--text);">✏️ Düzenle</b> diyerek öğrencileri sıralara yerleştirip kaydedin (Eğer O Sınıfın Sınıf Öğretmeni Değilseniz Oradaki Düzeni Değiştirmeyiniz Lütfen). İsterseniz <b style="color:var(--red);">📄 PDF İndir</b> diyerek profesyonel çıktısını alabilirsiniz.</p>
+        </div>
+        <div style="margin:0 18px 16px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);">
+          <img src="Ekran görüntüsü 2026-03-24 214417.png" class="rehber-foto">
+        </div>
+      </div>
+
       <div>
         <div style="padding:16px 18px 12px;display:flex;align-items:center;gap:10px;">
           <div style="width:32px;height:32px;border-radius:10px;background:var(--red-score-bg);border:1px solid var(--red-score-border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">⚠️</div>
@@ -1266,6 +1419,7 @@ function checkRehberDurum() {
         <div class="asgn-meta"      id="asgn-meta">—</div>
       </div>
       <div class="hero-btns">
+        <button class="hero-btn" onclick="openSeatingPlan()">🪑 Oturma Planı</button>
         <button class="hero-btn" onclick="openAnalytics()">📊 Analiz</button>
         <button class="hero-btn" onclick="openStudentEdit()">⚙️ Düzenle</button>
         <button class="hero-btn" onclick="openOverlay('overlay-download')">📥 İndir</button>
@@ -1630,6 +1784,38 @@ function checkRehberDurum() {
   </div>
 </div>
 
+<div id="screen-seating" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeSeatingPlan()">←</button>
+    <div style="flex:1;margin:0 10px;">
+      <div class="topbar-title" id="seat-title">Oturma Planı</div>
+      <div class="topbar-sub" id="seat-sub"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="btn-sm btn-ghost" id="btn-seat-edit" onclick="toggleSeatingEdit()">✏️ Düzenle</button>
+      <button class="btn-sm btn-red" onclick="downloadSeatingPDF()">📄 PDF İndir</button>
+    </div>
+  </div>
+
+  <div class="page-scroll seating-wrap" id="seating-scroll-area">
+    <div id="seating-empty-state" class="empty-state" style="display:none;margin-top:60px;">
+      <span class="empty-icon">🪑</span>
+      <div class="empty-text">Henüz oturma planı oluşturulmadı.<br><br>
+        <button class="btn-login" style="max-width:200px;margin:16px auto;" onclick="toggleSeatingEdit()">Planı Oluştur</button>
+      </div>
+    </div>
+
+    <div id="seating-content" style="display:none; width:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;padding:0 2px;">
+        <div style="font-size:12px;font-weight:700;color:var(--gray-500);" id="seat-info-label"></div>
+        <button id="btn-save-seat" class="btn-sm btn-red" onclick="saveSeatingPlan()" style="display:none; font-size:13px; padding:10px 20px; box-shadow:0 4px 12px rgba(224,32,32,0.3);">💾 Kaydet</button>
+      </div>
+
+      <div class="seating-rows-area" id="seating-rows-area" style="width: 100%;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════ -->
@@ -1639,7 +1825,7 @@ function checkRehberDurum() {
 // ════════════════════════════════
 // SABITLER
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbyzNE6UCQ6LB3P2vXZ00sGDwUR2aD59kPsasQ5yMQGKjNCOpiLTuy5H55swsDBteJIM/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxF827bV_bXg0MuXR9E2CzAJFI6dCYJVDfh-8qsjHtu66kngogj9yAf22zrmICqMhZD/exec";
 const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
 const BRANCH_LABELS = { Edebiyat: 'T\u00fcrk Dili ve Edebiyat\u0131', Ingilizce: '\u0130ngilizce', Fransizca: 'Frans\u0131zca' };
 const STORAGE_KEY = 'vpAL3';
@@ -1658,12 +1844,14 @@ var state = {
   statuses: {},
   notes: {},
   multScores: {},
+  seatingPlans: {}, // YENİ EKLENDİ
   multPlus: 1,
   multMinus: 1,
   editMode: false,
   students: [],
   noteTarget: null,
-  inputMode: 'perf'
+  inputMode: 'perf',
+  seatingEditMode: false // YENİ EKLENDİ
 };
 
 // ════════════════════════════════
@@ -1676,7 +1864,8 @@ function persist() {
     var teacherKey = STORAGE_KEY + '_' + state.teacher.replace(/\s+/g, '');
     var dataToSave = {
       classes: state.classes, homeworks: state.homeworks,
-      statuses: state.statuses, notes: state.notes, multScores: state.multScores || {}
+      statuses: state.statuses, notes: state.notes, multScores: state.multScores || {},
+      seatingPlans: state.seatingPlans // YENİ EKLENDİ
     };
     var jsonStr = JSON.stringify(dataToSave);
     if (new Blob([jsonStr]).size / 1024 > 4096) console.warn('LocalStorage boyutu 4MB sinarina yaklasti!');
@@ -1693,12 +1882,12 @@ function persist() {
       });
       try {
         var k2 = STORAGE_KEY + '_' + state.teacher.replace(/\s+/g, '');
-        localStorage.setItem(k2, JSON.stringify({ classes: state.classes, homeworks: state.homeworks, statuses: state.statuses, notes: state.notes, multScores: state.multScores || {} }));
-        notify(cleaned + ' eski kay\u0131t temizlendi.', 'success', 3500);
+        localStorage.setItem(k2, JSON.stringify({ classes: state.classes, homeworks: state.homeworks, statuses: state.statuses, notes: state.notes, multScores: state.multScores || {}, seatingPlans: state.seatingPlans }));
+        notify(cleaned + ' eski kayıt temizlendi.', 'success', 3500);
       } catch (e2) {
-        showCustomConfirm('Haf\u0131za Dolu!', 'Depolama alani doldu. L\u00fctfen <b>KAYDET</b> butonuna basin.', '\u26a0\ufe0f', function () {}, false);
+        showCustomConfirm('Hafıza Dolu!', 'Depolama alani doldu. Lütfen <b>KAYDET</b> butonuna basin.', '⚠️', function () {}, false);
       }
-    } else { console.warn('LocalStorage hatas\u0131:', e); }
+    } else { console.warn('LocalStorage hatası:', e); }
   }
 }
 
@@ -1715,11 +1904,12 @@ function hydrate() {
         var d = JSON.parse(raw);
         state.classes = d.classes || []; state.homeworks = d.homeworks || {};
         state.statuses = d.statuses || {}; state.notes = d.notes || {}; state.multScores = d.multScores || {};
+        state.seatingPlans = d.seatingPlans || {}; // YENİ EKLENDİ
       } else {
-        state.classes = []; state.homeworks = {}; state.statuses = {}; state.notes = {}; state.multScores = {};
+        state.classes = []; state.homeworks = {}; state.statuses = {}; state.notes = {}; state.multScores = {}; state.seatingPlans = {};
       }
     }
-  } catch (e) { state.multScores = {}; }
+  } catch (e) { state.multScores = {}; state.seatingPlans = {}; }
 }
 
 hydrate();
@@ -1727,22 +1917,52 @@ hydrate();
 // ════════════════════════════════
 // BOOT
 // ════════════════════════════════
-(async function boot() {
+// ════════════════════════════════
+// BOOT (SİSTEM BAŞLANGICI)
+// ════════════════════════════════
+// ════════════════════════════════
+// BOOT (SİSTEM BAŞLANGICI)
+// ════════════════════════════════
+async function boot() {
   applyTheme();
   if (state.teacher) {
     var lastScreen  = localStorage.getItem('vpAL3_lastScreen');
     var lastClassId = localStorage.getItem('vpAL3_lastClassId');
-    if (!lastScreen || lastScreen === 'screen-dashboard') showDashboard();
-    notify('Veriler g\u00fcncelleniyor... \u23f3', 'info', 2000);
-    await loadTeacherProfile(state.teacher);
-    if ((lastScreen === 'screen-assignment' || lastScreen === 'screen-analytics') && lastClassId) {
-      var cls = state.classes.find(function (c) { return c.id === lastClassId; });
-      if (cls) {
-        openClass(lastClassId).then(function () { if (lastScreen === 'screen-analytics') openAnalytics(); });
+
+    if (lastScreen === 'screen-assignment' || lastScreen === 'screen-analytics' || lastScreen === 'screen-seating') {
+      if (lastClassId) {
+        var cls = state.classes.find(function (c) { return c.id === lastClassId; });
+        if (cls) {
+          openClass(lastClassId).then(function () { 
+            if (lastScreen === 'screen-analytics') openAnalytics(); 
+            if (lastScreen === 'screen-seating') openSeatingPlan();
+          });
+        } else { showDashboard(); }
       } else { showDashboard(); }
-    } else { renderDashboard(); }
-  } else { showScreen('screen-login'); }
-})();
+    } else { 
+      showDashboard(); 
+    }
+
+    notify('Veriler güncelleniyor... ⏳', 'info', 2000);
+    await loadTeacherProfile(state.teacher);
+    
+    var currentScreen = document.querySelector('.screen.active');
+    if (currentScreen && currentScreen.id === 'screen-dashboard') {
+        renderDashboard();
+    } else if (state.currentClass) {
+        renderStudentArea();
+        updateTally();
+        updateQS();
+        if (currentScreen && currentScreen.id === 'screen-seating') renderSeatingPlan();
+    }
+
+  } else { 
+    showScreen('screen-login'); 
+  }
+}
+
+// Doğru tetikleme yöntemi (Sayfa hazır olunca çalıştır):
+window.addEventListener('DOMContentLoaded', boot);
 
 // ════════════════════════════════
 // EKRAN & TEMA
@@ -2907,16 +3127,30 @@ function closeCustomAlert() { document.getElementById('custom-alert-box').classL
 // ════════════════════════════════
 // BULUT SENKRONIZASYONU
 // ════════════════════════════════
+// BULUT SENKRONIZASYONU
 async function syncTeacherProfile() {
   if (!state.teacher) return;
   var myClasses = getMyClasses(); var myClassIds = myClasses.map(function (c) { return c.id; });
   var myStatuses = {}, myMultScores = {}, myNotes = {};
+  
   Object.keys(state.statuses).forEach(function (key) { if (key === '_general' || myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myStatuses[key] = state.statuses[key]; });
   Object.keys(state.multScores || {}).forEach(function (key) { if (key === '_general' || myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myMultScores[key] = state.multScores[key]; });
   Object.keys(state.notes).forEach(function (key) { if (myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myNotes[key] = state.notes[key]; });
+  
+  // ▼ AŞAĞIDAKİ SATIRLARI SİLDİK, ARTIK ÖĞRETMEN PROFİLİNE PLAN KAYDETMİYORUZ ▼
   try {
-    await fetch(API_URL, { method: 'POST', mode: 'cors', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'saveTeacherData', teacher: state.teacher, jsonData: JSON.stringify({ classes: myClasses, notes: myNotes, statuses: myStatuses, multScores: myMultScores }) }) });
-  } catch (e) { console.log('Bulut senkronizasyonu basarisiz:', e.message); }
+    await fetch(API_URL, { 
+        method: 'POST', mode: 'cors', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+        body: JSON.stringify({ 
+            action: 'saveTeacherData', 
+            teacher: state.teacher, 
+            jsonData: JSON.stringify({ classes: myClasses, notes: myNotes, statuses: myStatuses, multScores: myMultScores }) // seatingPlans çıkarıldı
+        }) 
+    });
+  } catch (e) { 
+    console.error('Bulut senkronizasyonu başarısız:', e.message);
+    notify('Bulut eşitleme hatası. Ağ bağlantınızı veya eklentilerinizi kontrol edin.', 'error', 4000); 
+  }
 }
 
 async function loadTeacherProfile(teacherName) {
@@ -2930,10 +3164,463 @@ async function loadTeacherProfile(teacherName) {
     if (data && typeof data === 'object') {
       state.classes = data.classes || []; state.notes = data.notes || {};
       state.statuses = data.statuses || {}; state.multScores = data.multScores || {};
+      state.seatingPlans = data.seatingPlans || {}; // YENİ EKLENDİ
       persist(); console.log('Profil yuklendi:', state.classes.length, 'sinif');
     }
   } catch (e) { console.error('Profil yuklenemedi:', e.message); }
 }
+
+
+// ════════════════════════════════
+// OTURMA PLANI (SEATING PLAN)
+// ════════════════════════════════
+// ════════════════════════════════
+// OTURMA PLANI (SEATING PLAN) YENİ MANTIK
+// ════════════════════════════════
+
+// ════════════════════════════════
+// OTURMA PLANI (SEATING PLAN)
+// ════════════════════════════════
+
+// ════════════════════════════════
+// OTURMA PLANI (SEATING PLAN)
+// ════════════════════════════════
+
+// ════════════════════════════════
+// OTURMA PLANI (SEATING PLAN)
+// ════════════════════════════════
+
+async function openSeatingPlan() {
+  if (!state.currentClass || state.students.length === 0) {
+    notify('Sınıfta öğrenci yok!', 'error'); return;
+  }
+  showScreen('screen-seating');
+  document.getElementById('seat-title').textContent = state.currentClass.name + ' Oturma Planı';
+  document.getElementById('seat-sub').textContent = state.students.length + ' Öğrenci';
+  state.seatingEditMode = false;
+  
+  // Ekrana yükleniyor yazısı basıyoruz
+  var area = document.getElementById('seating-rows-area');
+  if(area) area.innerHTML = '<div style="text-align:center; padding:40px; color:var(--gray-400); font-weight:bold;">Ortak plan yükleniyor... ⏳</div>';
+  document.getElementById('seating-empty-state').style.display = 'none';
+  document.getElementById('seating-content').style.display = 'block';
+
+  // Ortak veritabanından planı çek
+  try {
+    var url = API_URL + '?action=getSeatingPlan&className=' + encodeURIComponent(state.currentClass.name) + '&_t=' + Date.now();
+    var resp = await fetch(url);
+    var planData = await resp.json();
+    state.seatingPlans[state.currentClass.id] = planData; // Gelen veriyi sisteme işle
+  } catch(e) {
+    console.warn("Ortak plan çekilemedi, yerel veri kullanılacak.");
+  }
+
+  renderSeatingPlan();
+}
+
+function closeSeatingPlan() {
+  state.seatingEditMode = false;
+  showScreen('screen-assignment');
+}
+
+function toggleSeatingEdit() {
+  state.seatingEditMode = !state.seatingEditMode;
+  document.getElementById('btn-seat-edit').textContent = state.seatingEditMode ? '✕ İptal' : '✏️ Düzenle';
+  renderSeatingPlan();
+}
+
+function renderSeatingPlan() {
+  var planKey = state.currentClass.id;
+  var plan = state.seatingPlans[planKey] || {};
+  
+  var hasValidPlan = Object.keys(plan).length > 0;
+  
+  document.getElementById('seating-empty-state').style.display = (!hasValidPlan && !state.seatingEditMode) ? 'block' : 'none';
+  document.getElementById('seating-content').style.display = (hasValidPlan || state.seatingEditMode) ? 'block' : 'none';
+  
+  var saveBtn = document.getElementById('btn-save-seat');
+  if (saveBtn) saveBtn.style.display = state.seatingEditMode ? 'block' : 'none';
+  
+  var infoLabel = document.getElementById('seat-info-label');
+  if (infoLabel) {
+    var depth = Math.ceil(state.students.length / 8);
+    if(depth < 1) depth = 1;
+    infoLabel.textContent = state.currentClass.name + ' · ' + state.students.length + ' Öğrenci (Derinlik: ' + depth + ' Sıra)';
+  }
+  
+  renderSeatingRows();
+}
+
+function renderSeatingRows() {
+  var area = document.getElementById('seating-rows-area');
+  if (!area) return;
+
+  var planKey = state.currentClass.id;
+  var plan = state.seatingPlans[planKey] || {};
+  
+  var columnsCount = 4; // 4. Sıra, 3. Sıra, 2. Sıra, 1. Sıra
+  var seatsPerPair = 2;
+  var depth = Math.ceil(state.students.length / 8);
+  if (depth < 1) depth = 1;
+
+  var html = '<div style="display: flex; gap: 14px; justify-content: center; min-width: max-content; padding-bottom: 20px; overflow-x: auto;">';
+
+  // Sütunları Çiz (Soldan Sağa: 4, 3, 2, 1)
+  for (var c = columnsCount; c >= 1; c--) {
+    html += '<div style="display: flex; flex-direction: column; gap: 10px; width: 145px;">';
+    
+    // ÖĞRETMEN MASASI: Sadece 1. SIRA'nın üstünde, yatay bir dikdörtgen
+    if (c === 1) {
+        html += '<div style="background: linear-gradient(135deg, var(--gray-700) 0%, #2d3748 100%); color: #fff; text-align: center; padding: 14px 10px; border-radius: 12px; font-size: 12px; font-weight: 900; letter-spacing: 1px; box-shadow: var(--shadow-sm); margin-bottom: 6px;">👨‍🏫 ÖĞRETMEN</div>';
+    } else {
+        // Hizalamayı korumak için görünmez boşluk
+        html += '<div style="height: 44px; margin-bottom: 6px;"></div>';
+    }
+    
+    html += '<div style="text-align: center; font-size: 13px; font-weight: 900; color: var(--gray-500);">' + c + '. SIRA</div>';
+    
+    for (var r = 0; r < depth; r++) {
+      html += '<div class="desk-pair" style="display: flex; background: var(--card); border: 2px solid var(--border); border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); min-height: 75px; overflow: hidden;">';
+      
+      for (var s = 0; s < seatsPerPair; s++) {
+        var seatIndex = ((c - 1) * 2) + s; 
+        var seatKey = 'r' + r + 's' + seatIndex;
+        var isLeft = (s === 0);
+
+        html += '<div class="desk-seat" style="flex: 1; padding: 6px 2px; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 50%; ' + (isLeft ? 'border-right: 2px solid var(--border);' : '') + '">';
+        
+        if (state.seatingEditMode) {
+          html += '<select id="sel-' + seatKey + '" onchange="onSeatChange()" style="width: 96%; font-size: 11px; padding: 8px 1px; border: 1.5px solid var(--red-mid); border-radius: 8px; background: var(--red-light); color: var(--red-dark); font-weight: 800; outline: none; -webkit-appearance: none; text-align: center; cursor: pointer; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">';
+          html += '<option value="">— Boş —</option>';
+          state.students.forEach(function(st) {
+            var savedVal = plan[seatKey] || '';
+            var sel = (savedVal === String(st.no)) ? ' selected' : '';
+            var shortAd = st.ad.split(' ')[0];
+            if(shortAd.length > 8) shortAd = shortAd.substring(0,7)+'.';
+            var shortSoyad = st.soyad;
+            if(shortSoyad.length > 8) shortSoyad = shortSoyad.substring(0,7)+'.';
+            html += '<option value="' + st.no + '"' + sel + '>' + shortAd + ' ' + shortSoyad + '</option>';
+          });
+          html += '</select>';
+        } else {
+          var savedNo = plan[seatKey] || '';
+          if (savedNo) {
+            var stu = state.students.find(function(st){ return String(st.no) === String(savedNo); });
+            if (stu) {
+              html += '<div style="font-size: 10px; color: var(--gray-400); font-weight: 900; margin-bottom: 4px; font-family: var(--font-mono);">' + stu.no + '</div>';
+              html += '<div style="font-size: 11px; font-weight: 800; color: var(--text); line-height: 1.2; text-align: center; word-break: break-word;">'
+                + stu.ad.split(' ')[0] + '<br>' + stu.soyad + '</div>';
+            } else {
+              html += '<div style="color: var(--gray-300); font-size: 16px; font-weight: bold;">—</div>';
+            }
+          } else {
+            html += '<div style="color: var(--gray-300); font-size: 16px; font-weight: bold;">—</div>';
+          }
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>'; 
+  area.innerHTML = html;
+}
+
+function onSeatChange() {
+  var selects = document.querySelectorAll('[id^="sel-r"]');
+  var usedNos = {};
+  selects.forEach(function(sel) {
+    if (!sel.value) return;
+    if (usedNos[sel.value]) {
+      notify('"' + sel.options[sel.selectedIndex].text + '" zaten başka bir yerde oturuyor!', 'error', 2500);
+      sel.value = '';
+    } else {
+      usedNos[sel.value] = true;
+    }
+  });
+}
+
+async function saveSeatingPlan() {
+  var planKey = state.currentClass.id;
+  var newPlan = {};
+  
+  var selects = document.querySelectorAll('[id^="sel-r"]');
+  selects.forEach(function(sel) {
+    var seatKey = sel.id.replace('sel-', '');
+    if (sel.value) newPlan[seatKey] = sel.value;
+  });
+  
+  state.seatingPlans[planKey] = newPlan;
+  persist(); // Hızlı yüklenmesi için telefon hafızasına yedekle
+  
+  state.seatingEditMode = false;
+  document.getElementById('btn-seat-edit').textContent = '✏️ Düzenle';
+  renderSeatingPlan();
+  
+  notify('Oturma planı ortak sisteme kaydediliyor... ⏳', 'info');
+  
+  // Ortak (Global) Veritabanına Yolla
+  try {
+    var payload = {
+      action: 'saveSeatingPlan',
+      className: state.currentClass.name,
+      planData: JSON.stringify(newPlan),
+      teacher: state.teacher
+    };
+    var resp = await fetch(API_URL, {
+        method: 'POST', mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    notify('Ortak oturma planı başarıyla kaydedildi! ✅', 'success');
+    
+    // DİKKAT: Buradaki 'await syncTeacherProfile();' satırını sildik çünkü gerek kalmadı.
+    
+  } catch(e) {
+    notify('Plan kaydedilemedi! İnternet bağlantınızı kontrol edin.', 'error');
+  }
+}
+
+function downloadSeatingPDF() {
+  var planKey = state.currentClass.id;
+  var plan    = state.seatingPlans[planKey];
+
+  if (!plan || Object.keys(plan).length === 0) {
+    notify('Önce bir plan oluşturun.', 'error');
+    return;
+  }
+
+  if (typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
+    notify('PDF altyapısı yükleniyor, bekleyin...', 'info', 2000);
+    setTimeout(downloadSeatingPDF, 2000);
+    return;
+  }
+
+  notify('Profesyonel PDF hazırlanıyor... 📄', 'info', 2500);
+
+  // ← ESKİ FOTOGRAF_BASE64 SATIRI VE IF BLOĞU SİLİNDİ
+  
+function getLogoBase64(callback) {
+  // logo.js dosyasındaki uzun kodu tutan değişkenimizi buraya çağırıyoruz
+  var LOGO = okulLogosu; 
+  callback(LOGO);
+}
+
+  getLogoBase64(function(logoData) {
+    generatePremiumPDF(logoData);
+  });
+
+
+ 
+
+  /* ════════════════════════════════════════════════════════
+     TÜRKÇE KARAKTER TEMİZLEYİCİ
+  ════════════════════════════════════════════════════════ */
+  function clearTr(text) {
+    if (!text) return '';
+    return text.replace(/Ğ/g, 'G').replace(/ğ/g, 'g')
+               .replace(/Ü/g, 'U').replace(/ü/g, 'u')
+               .replace(/Ş/g, 'S').replace(/ş/g, 's')
+               .replace(/İ/g, 'I').replace(/ı/g, 'i')
+               .replace(/Ö/g, 'O').replace(/ö/g, 'o')
+               .replace(/Ç/g, 'C').replace(/ç/g, 'c');
+  }
+
+  /* ════════════════════════════════════════════════════════
+     PREMIUM PDF OLUŞTURMA FONKSİYONU
+  ════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════
+     PREMIUM PDF OLUŞTURMA FONKSİYONU
+  ════════════════════════════════════════════════════════ */
+  function generatePremiumPDF(logoData) {
+    var jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : jspdf.jsPDF;
+    var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    var COLOR = {
+      primary:   [220, 38, 38],   
+      darkNavy:  [15, 23, 42],    
+      slate600:  [71, 85, 105],   
+      slate400:  [148, 163, 184], 
+      bgGray:    [248, 250, 252], 
+      cardBg:    [255, 255, 255], 
+      cardDrop:  [226, 232, 240]  
+    };
+
+    var PW = 297, PH = 210;
+    var MX = 16, MY = 8; 
+    var HEADER_H = 26; 
+    
+    // YENİ AYARLAR BURADA BAŞLIYOR
+    var GRID_TOP = MY + HEADER_H + 26; // 20'ydi 26 yapıldı: Tüm planı biraz daha aşağı aldık
+    var AVAILABLE_H = PH - GRID_TOP - 16; // 6'ydı 16 yapıldı: En alttan bırakılan boşluğu artırdık
+    
+    var COLS = 4;
+    var COL_GAP = 12; // Sütunlar arası yatay boşluk (bunu da istersen 14 yapabilirsin)
+    var depth = Math.max(1, Math.ceil(state.students.length / 8));
+    var ROW_GAP = 10; // 7'ydi 10 yapıldı: Satır arası boşluk arttı, kutular biraz küçüldü
+    var ROW_H = Math.min(26, (AVAILABLE_H - ROW_GAP * (depth - 1)) / depth);
+    var COL_W = (PW - (MX * 2) - (COL_GAP * (COLS - 1))) / COLS;
+    var SEAT_W = COL_W / 2;
+    var CORNER = 4; 
+
+    doc.setFillColor(COLOR.bgGray[0], COLOR.bgGray[1], COLOR.bgGray[2]);
+    doc.rect(0, 0, PW, PH, 'F');
+
+    doc.setFillColor(COLOR.primary[0], COLOR.primary[1], COLOR.primary[2]);
+    doc.roundedRect(MX, MY, PW - (MX * 2), HEADER_H, 4, 4, 'F');
+
+    var logoSize = 18;
+    var logoX = MX + 5;
+    var logoY = MY + 4;
+    
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(logoX, logoY, logoSize, logoSize, 3, 3, 'F');
+    
+    if (logoData && logoData.length > 50) {
+      try { 
+        doc.addImage(logoData, 'PNG', logoX + 1.5, logoY + 1.5, logoSize - 3, logoSize - 3); 
+      } catch (e) {
+        console.warn("Base64 Logo eklenirken hata oluştu.");
+      }
+    }
+    
+    var textStartX = MX + logoSize + 10;
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(17);
+    doc.setFont('helvetica', 'bold');
+    doc.text(clearTr('VEFA POYRAZ ANADOLU LISESI'), textStartX, MY + 11.5);
+    
+    doc.setTextColor(254, 202, 202);
+    doc.setFontSize(10.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(clearTr('Donem Sonu Resmi Oturma Plani Duzeni'), textStartX, MY + 18.5);
+
+    var infoBoxW = 72;
+    var infoBoxH = 18;
+    var infoBoxX = PW - MX - infoBoxW - 4;
+    var infoBoxY = MY + 4;
+    
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(infoBoxX, infoBoxY, infoBoxW, infoBoxH, 3, 3, 'F');
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLOR.slate600[0], COLOR.slate600[1], COLOR.slate600[2]);
+    doc.text('SINIF:', infoBoxX + 5, infoBoxY + 6.5);
+    doc.text('TARIH:', infoBoxX + 5, infoBoxY + 11.5);
+    doc.text('OGRETMEN:', infoBoxX + 5, infoBoxY + 16.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLOR.primary[0], COLOR.primary[1], COLOR.primary[2]);
+    doc.text(clearTr(state.currentClass.name), infoBoxX + 26, infoBoxY + 6.5);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(COLOR.darkNavy[0], COLOR.darkNavy[1], COLOR.darkNavy[2]);
+    doc.text(today(), infoBoxX + 26, infoBoxY + 11.5);
+    
+    var tName = clearTr(state.teacher);
+    if (tName.length > 20) tName = tName.substring(0, 18) + '...';
+    doc.text(tName, infoBoxX + 26, infoBoxY + 16.5);
+
+    var TEACHER_H = 12; 
+    var col1X = MX + 3 * (COL_W + COL_GAP); 
+    // Öğretmen masasını yazıdan biraz daha uzaklaştırdık
+    var tDeskY = GRID_TOP - TEACHER_H - 7; 
+
+    doc.setFillColor(COLOR.cardDrop[0], COLOR.cardDrop[1], COLOR.cardDrop[2]);
+    doc.roundedRect(col1X + 1.5, tDeskY + 1.5, COL_W, TEACHER_H, 4, 4, 'F');
+    
+    doc.setFillColor(COLOR.darkNavy[0], COLOR.darkNavy[1], COLOR.darkNavy[2]);
+    doc.roundedRect(col1X, tDeskY, COL_W, TEACHER_H, 4, 4, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(clearTr('OGRETMEN MASASI'), col1X + COL_W / 2, tDeskY + 8, { align: 'center' });
+
+    for (var c = COLS; c >= 1; c--) {
+      var colIdx = COLS - c;       
+      var colX   = MX + colIdx * (COL_W + COL_GAP);
+
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(COLOR.slate400[0], COLOR.slate400[1], COLOR.slate400[2]);
+      // Sıra yazısını çizgiye çok az daha yaklaştırdık (masadan uzaklaşması için)
+      doc.text(c + '. SIRA', colX + COL_W / 2, GRID_TOP - 3, { align: 'center' });
+      
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(colX, GRID_TOP - 1, colX + COL_W, GRID_TOP - 1);
+
+      for (var r = 0; r < depth; r++) {
+        var rowY = GRID_TOP + 3 + r * (ROW_H + ROW_GAP);
+        
+        var anyOcc = false;
+        for (var s = 0; s < 2; s++) {
+          if (plan['r' + r + 's' + ((c - 1) * 2 + s)]) { anyOcc = true; break; }
+        }
+
+        doc.setFillColor(COLOR.cardDrop[0], COLOR.cardDrop[1], COLOR.cardDrop[2]);
+        doc.roundedRect(colX + 1.5, rowY + 1.5, COL_W, ROW_H, CORNER, CORNER, 'F');
+
+        doc.setFillColor(COLOR.cardBg[0], COLOR.cardBg[1], COLOR.cardBg[2]);
+        doc.setDrawColor(anyOcc ? 147 : 203, anyOcc ? 197 : 213, anyOcc ? 253 : 225); 
+        doc.setLineWidth(0.4);
+        doc.roundedRect(colX, rowY, COL_W, ROW_H, CORNER, CORNER, 'FD');
+
+        doc.setDrawColor(226, 232, 240); 
+        doc.setLineWidth(0.3);
+        doc.line(colX + SEAT_W, rowY + 3, colX + SEAT_W, rowY + ROW_H - 3);
+
+        for (var s2 = 0; s2 < 2; s2++) {
+          var sk2    = 'r' + r + 's' + ((c - 1) * 2 + s2);
+          var ctrX   = colX + s2 * SEAT_W + SEAT_W / 2;
+          var savedNo = plan[sk2] || '';
+
+          if (savedNo) {
+            var stu = state.students.find(function (x) { return String(x.no) === String(savedNo); });
+            if (stu) {
+              doc.setFontSize(7);
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(COLOR.slate400[0], COLOR.slate400[1], COLOR.slate400[2]);
+              doc.text(String(stu.no), ctrX, rowY + ROW_H * 0.28, { align: 'center' });
+
+              var ad = clearTr(stu.ad.split(' ')[0]);
+              if (ad.length > 9) ad = ad.substring(0, 8) + '.';
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(COLOR.darkNavy[0], COLOR.darkNavy[1], COLOR.darkNavy[2]);
+              doc.text(ad, ctrX, rowY + ROW_H * 0.60, { align: 'center' });
+
+              var soyad = clearTr(stu.soyad);
+              if (soyad.length > 10) soyad = soyad.substring(0, 9) + '.';
+              doc.setFontSize(8);
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(COLOR.slate600[0], COLOR.slate600[1], COLOR.slate600[2]);
+              doc.text(soyad, ctrX, rowY + ROW_H * 0.85, { align: 'center' });
+            }
+          } else {
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(203, 213, 225);
+            doc.text('BOS', ctrX, rowY + ROW_H / 2 + 1.5, { align: 'center' });
+          }
+        }
+      }
+    }
+
+    var fileName = clearTr(state.currentClass.name).replace(/[\/\\]/g, '') + '_Oturma_Plani.pdf';
+    doc.save(fileName);
+    notify('Premium PDF başarıyla oluşturuldu! ✅', 'success');
+  }
+}
+
+// ════════════════════════════════
+// YARDIMCILAR
+// ════════════════════════════════
+
 
 // ════════════════════════════════
 // YARDIMCILAR
@@ -2941,5 +3628,7 @@ async function loadTeacherProfile(teacherName) {
 function today() { return new Date().toLocaleDateString('tr-TR'); }
 
 </script>
+
+<script src="logo.js"></script>
 </body>
 </html>
