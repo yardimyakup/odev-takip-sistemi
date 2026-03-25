@@ -1825,7 +1825,7 @@ function checkRehberDurum() {
 // ════════════════════════════════
 // SABITLER
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbxF827bV_bXg0MuXR9E2CzAJFI6dCYJVDfh-8qsjHtu66kngogj9yAf22zrmICqMhZD/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwq5IOhsmp2jkAIGoKG-fknuNlPs5Hk2_X92bTIp0GpHlPsLFlldGBFC_xldx2D_xEp/exec";
 const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
 const BRANCH_LABELS = { Edebiyat: 'T\u00fcrk Dili ve Edebiyat\u0131', Ingilizce: '\u0130ngilizce', Fransizca: 'Frans\u0131zca' };
 const STORAGE_KEY = 'vpAL3';
@@ -2641,14 +2641,27 @@ function setAll(status) {
 }
 
 function setExamScore(no, val, examType) {
+  // YENİ EKLENEN KORUMA KALKANI: Not 0'dan küçük, 100'den büyük olamaz.
+  if (val !== "") {
+    val = parseInt(val);
+    if (val > 100) { val = 100; notify('Sınav notu en fazla 100 olabilir!', 'error'); }
+    if (val < 0) { val = 0; notify('Sınav notu 0\'dan küçük olamaz!', 'error'); }
+  }
+
   var activeId = state.currentHwId || '_general';
   if (!state.statuses[activeId]) state.statuses[activeId] = {};
   var cur = state.statuses[activeId][no + '_exam'] || '|';
   var parts = cur.split('|');
   var notes = { '1': parts[0] || '', '2': parts[1] || '' };
+  
   notes[examType] = String(val).trim();
-  if (notes['1'] === '' && notes['2'] === '') { delete state.statuses[activeId][no + '_exam']; }
-  else { state.statuses[activeId][no + '_exam'] = notes['1'] + '|' + notes['2']; }
+  
+  if (notes['1'] === '' && notes['2'] === '') { 
+    delete state.statuses[activeId][no + '_exam']; 
+  } else { 
+    state.statuses[activeId][no + '_exam'] = notes['1'] + '|' + notes['2']; 
+  }
+  
   persist(); updateRow(no);
 }
 
