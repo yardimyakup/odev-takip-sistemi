@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>İdare Paneli — Vefa Poyraz A.L.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/x-icon" href="logo-dark.png">
+<style>
+/* ═══════════════════════════════════════
+   TEMA DEĞİŞKENLERİ (AYDINLIK & KARANLIK)
+═══════════════════════════════════════ */
+:root {
+  /* AYDINLIK MOD (Varsayılan) */
+  --red:       #e02020;
+  --red-dk:    #b81818;
+  --red-bg:    #fef2f2;
+  --red-line:  #fecaca;
+  --bg:        #f1f3f6;
+  --surface:   #ffffff;
+  --border:    #e5e9f0;
+  --border2:   #cbd2dc;
+  --text:      #1a202e;
+  --text2:     #6b7a90;
+  --text3:     #9aaab8;
+  --green:     #059669;
+  --green-bg:  #ecfdf5;
+  --green-line:#a7f3d0;
+  
+  --font:      'IBM Plex Sans', sans-serif;
+  --mono:      'IBM Plex Mono', monospace;
+  --sidebar:   240px;
+  --topbar:    56px;
+  --shadow-sm: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+body.dark {
+  /* KARANLIK MOD */
+  --red:       #e8414e;
+  --red-dk:    #a31723;
+  --red-bg:    rgba(232, 65, 78, 0.1);
+  --red-line:  rgba(232, 65, 78, 0.3);
+  --bg:        #0e0e0e;
+  --surface:   #161616;
+  --border:    #2a2a2a;
+  --border2:   #333333;
+  --text:      #f0f0f0;
+  --text2:     #a0a0a0;
+  --text3:     #666666;
+  --green:     #2ecc71;
+  --green-bg:  rgba(46,204,113,0.08);
+  --green-line:rgba(46,204,113,0.2);
+  --shadow-sm: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; font-size: 14px; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; transition: background 0.3s, color 0.3s; }
+
+/* ── TOPBAR ── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+  height: var(--topbar); background: var(--surface);
+  border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 18px;
+  transition: background 0.3s, border-color 0.3s;
+}
+.topbar-left { display: flex; align-items: center; gap: 14px; }
+.logo-mark {
+  width: 32px; height: 32px; background: linear-gradient(135deg, var(--red), var(--red-dk));
+  display: flex; align-items: center; justify-content: center; border-radius: 8px;
+  font-family: var(--mono); font-size: 12px; font-weight: 700; color: #fff;
+  letter-spacing: -0.5px; flex-shrink: 0;
+}
+.logo-text { line-height: 1.2; }
+.logo-name { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
+.logo-sub  { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.5px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+#clock { font-family: var(--mono); font-size: 11px; color: var(--text3); font-weight: 600; margin-right:10px; }
+.btn-icon {
+  width: 34px; height: 34px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text2); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; transition: all 0.2s;
+}
+.btn-icon:hover { background: var(--border); color: var(--text); }
+.btn-menu { display: none; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed; top: var(--topbar); left: 0; bottom: 0; width: var(--sidebar); z-index: 200;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; transition: transform 0.28s ease, background 0.3s;
+}
+.sidebar-scroll { flex: 1; overflow-y: auto; padding: 16px 12px; }
+.sidebar-scroll::-webkit-scrollbar { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.nav-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text3); padding: 14px 10px 6px; font-family: var(--mono); }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px;
+  font-size: 13.5px; font-weight: 600; color: var(--text2); cursor: pointer; border: 1px solid transparent; transition: all 0.15s; user-select: none;
+}
+.nav-item:hover { background: var(--bg); color: var(--text); }
+.nav-item.active { background: var(--red-bg); color: var(--red); border-color: var(--red-line); }
+
+.sinif-sub {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 24px; border-radius: 6px;
+  font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; transition: all 0.15s; user-select: none;
+}
+.sinif-sub:hover { color: var(--text); background: var(--bg); }
+.sinif-sub.active { color: var(--red); background: var(--red-bg); }
+.sub-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+.sinif-sub.active .sub-dot { background: var(--red); }
+.sub-badge { margin-left: auto; background: var(--red); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; font-family: var(--mono); flex-shrink: 0; }
+
+.sidebar-footer { padding: 14px; border-top: 1px solid var(--border); }
+.profile { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: 0.2s; }
+.profile:hover { border-color: var(--red-line); }
+.profile-av { width: 34px; height: 34px; background: var(--red); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; font-family: var(--mono); flex-shrink: 0; }
+.profile-name { font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--text); }
+.profile-role { font-size: 10px; color: var(--red); font-weight: 600; margin-top: 2px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.5px;}
+
+/* ── MAIN CONTENT ── */
+.main { margin-left: var(--sidebar); margin-top: var(--topbar); min-height: calc(100vh - var(--topbar)); }
+.content { padding: 24px; max-width: 1000px; margin: 0 auto; }
+
+/* ── PAGE HEADER ── */
+.page-head { margin-bottom: 24px; }
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); font-family: var(--mono); margin-bottom: 8px; }
+.breadcrumb a { color: var(--red); cursor: pointer; text-decoration: none; font-weight: 600;}
+.breadcrumb a:hover { text-decoration: underline; }
+.page-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+.page-sub { font-size: 13px; color: var(--text2); margin-top: 4px; font-weight: 500;}
+
+/* ── STATS ── */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px; box-shadow: var(--shadow-sm); }
+.stat-val { font-size: 32px; font-weight: 700; font-family: var(--mono); line-height: 1; letter-spacing: -1px; }
+.stat-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); font-weight: 700; margin-top: 8px; }
+.val-red { color: var(--red); }
+.val-green { color: var(--green); }
+
+/* ── SINIF KARTLARI ── */
+.sinif-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.sinif-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm); }
+.sinif-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.sinif-card.has-absent { border-color: var(--red-line); background: var(--red-bg); }
+.sc-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-family: var(--mono); margin-bottom: 8px; }
+.sc-name { font-size: 26px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 4px; font-family: var(--mono); }
+.sc-count { font-size: 12px; font-weight: 500; color: var(--text2); }
+.sc-absent { font-size: 13px; font-weight: 700; color: var(--red); margin-top: 12px; display: flex; align-items: center; gap: 6px; }
+.sc-absent-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+.sc-present { font-size: 13px; font-weight: 600; color: var(--green); margin-top: 12px; }
+
+/* ── AKIŞ (FEED) ── */
+.feed { display: flex; flex-direction: column; gap: 10px; }
+.feed-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm); }
+.feed-item:hover { border-color: var(--border2); }
+.feed-no { font-size: 13px; font-weight: 700; font-family: var(--mono); color: var(--text3); width: 24px; text-align: center; flex-shrink: 0; }
+.feed-divider { width: 2px; height: 32px; background: var(--border); flex-shrink: 0; border-radius: 2px;}
+.feed-info { flex: 1; min-width: 0; }
+.feed-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.feed-meta { font-size: 12px; font-weight: 500; color: var(--text2); margin-top: 4px; }
+.feed-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.badge-absent { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-line); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-family: var(--mono); }
+.badge-full   { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-line); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-family: var(--mono); }
+.feed-time { font-size: 11px; font-weight: 600; color: var(--text3); font-family: var(--mono); }
+
+/* ── DEVAMSIZLIK TABLOSU ── */
+.abs-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow-sm); }
+.abs-table-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg); }
+.abs-table-title { font-size: 16px; font-weight: 800; color: var(--text); font-family: var(--mono); }
+.abs-table-sub { font-size: 12px; font-weight: 600; color: var(--text3); }
+.abs-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.abs-table th { text-align: left; padding: 12px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); font-family: var(--mono); border-bottom: 1px solid var(--border); background: var(--surface); }
+.abs-table td { padding: 12px 20px; border-bottom: 1px solid var(--border); font-weight: 500; }
+.abs-table tr:last-child td { border-bottom: none; }
+.abs-table tr:hover td { background: var(--bg); }
+.abs-num { font-family: var(--mono); font-weight: 700; font-size: 14px; }
+.risk-row td { background: var(--red-bg); }
+.risk-row:hover td { background: var(--red-line); }
+.td-no { width: 80px; font-family: var(--mono); color: var(--text3); font-weight: 600; }
+
+/* ── SINIF İÇİ DERS LİSTESİ ── */
+.ders-list { display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-sm); }
+.ders-row { background: var(--surface); border-bottom: 1px solid var(--border); }
+.ders-row:last-child { border-bottom: none; }
+.ders-head { display: flex; align-items: center; gap: 14px; padding: 16px; cursor: pointer; transition: background 0.15s; }
+.ders-head:hover { background: var(--bg); }
+.ders-num { width: 32px; height: 32px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; font-family: var(--mono); color: var(--text3); flex-shrink: 0; }
+.ders-num.red { background: var(--red-bg); border-color: var(--red-line); color: var(--red); }
+.ders-info { flex: 1; min-width: 0; }
+.ders-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.ders-teacher { font-size: 12px; font-weight: 500; color: var(--text2); margin-top: 2px; }
+.chevron { font-size: 12px; color: var(--text3); transition: transform 0.2s; }
+.ders-row.open .chevron { transform: rotate(180deg); }
+.ders-body { display: none; padding: 16px; border-top: 1px solid var(--border); background: var(--bg); }
+.ders-row.open .ders-body { display: block; }
+.section-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; font-family: var(--mono); }
+.lbl-red   { color: var(--red); }
+.student-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.student-pill { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.student-pill.absent { background: var(--red-bg); border-color: var(--red-line); color: var(--red-dk); }
+
+/* ── EMPTY STATE & YÜKLENİYOR ── */
+.empty { padding: 60px 20px; text-align: center; color: var(--text3); background: var(--surface); border: 2px dashed var(--border); border-radius: 8px; }
+.empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+.empty-text { font-size: 15px; font-weight: 600; }
+.loader { display: inline-block; width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── OVERLAY (MOBİL) ── */
+.overlay { display: none; position: fixed; inset: 0; z-index: 150; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
+.overlay.open { display: block; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 760px) {
+  :root { --sidebar: 280px; }
+  .btn-menu { display: flex; border:none; background:transparent;}
+  .btn-icon { border:none; background:transparent; }
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .content { padding: 16px 14px 60px; }
+  .stats-row { grid-template-columns: 1fr; gap: 10px; }
+  .sinif-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  #clock { display: none; }
+}
+
+.anim { animation: fadeIn 0.3s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.logo-mark {
+  width: 32px; height: 32px; 
+  background: transparent; /* Eskiden kırmızıydı, fotoğraf geleceği için şeffaf yaptık */
+  display: flex; align-items: center; justify-content: center; border-radius: 8px;
+  flex-shrink: 0; overflow: hidden; /* Fotoğrafın dışarı taşmasını engeller */
+}
+.logo-mark img {
+  width: 100%; height: 100%; object-fit: contain; /* Fotoğrafı tam sığdırır */
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <button class="btn-menu btn-icon" id="ham" onclick="toggleSidebar()">☰</button>
+    <div class="logo-mark">
+       <img src="logo1.png" alt="VP"> 
+    </div>
+    <div class="logo-text">
+      <div class="logo-name">İdare Paneli</div>
+      <div class="logo-sub">Yoklama Sistemi</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span id="clock"></span>
+    <button class="btn-icon" onclick="toggleTheme()" title="Tema Değiştir">🌙</button>
+  </div>
+</header>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-scroll">
+    <div class="nav-section">Genel</div>
+
+    <div class="nav-item active" id="nav-overview" onclick="showPage('overview')">
+      <span>📊</span> Genel Bakış
+    </div>
+
+    <div class="nav-section" style="margin-top:10px;">Sınıf Yoklamaları</div>
+    <div id="sinif-nav">
+      <div style="padding:10px; font-size:12px; color:var(--text3); font-style:italic;">Veriler yükleniyor...</div>
+    </div>
+
+    <div class="nav-section" style="margin-top:10px;">Raporlar</div>
+    <div class="nav-item" id="nav-abs" onclick="showPage('devamsizlik')">
+      <span>⚠️</span> Devamsızlık Özeti
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="profile" onclick="doLogout()">
+      <div class="profile-av" id="pf-av">MY</div>
+      <div>
+        <div class="profile-name" id="pf-name">İdareci</div>
+        <div class="profile-role">Çıkış Yap 🚪</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="content" id="main-content">
+    <div class="empty">
+      <div class="loader"></div>
+      <div class="empty-text">Veriler Google Sheets'ten çekiliyor...</div>
+    </div>
+  </div>
+</main>
+
+<div id="overlay-logout" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(2px); align-items:center; justify-content:center;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:30px; max-width:320px; width:90%; text-align:center; box-shadow:var(--shadow-sm); transform:scale(0.9); animation:popIn 0.3s forwards;">
+    <div style="font-size:48px; margin-bottom:10px;">👋</div>
+    <div style="font-size:18px; font-weight:800; color:var(--text); margin-bottom:8px;">Çıkış Yap</div>
+    <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:24px; line-height:1.5;">İdare panelinden çıkış yapmak istediğinize emin misiniz?</div>
+    <div style="display:flex; gap:10px;">
+      <button onclick="closeLogoutModal()" style="flex:1; padding:12px; border:none; border-radius:8px; background:var(--bg); color:var(--text2); font-weight:700; cursor:pointer; font-family:var(--font); transition:0.2s;">İptal</button>
+      <button onclick="executeLogout()" style="flex:1; padding:12px; border:none; border-radius:8px; background:var(--red); color:#fff; font-weight:700; cursor:pointer; font-family:var(--font); transition:0.2s;">Evet, Çıkış</button>
+    </div>
+  </div>
+</div>
+<style>@keyframes popIn { to { transform: scale(1); } }</style>
+
+<script>
+/* ═══════════════════════════════
+   GÜVENLİK & YETKİLENDİRME
+═══════════════════════════════ */
+const STORAGE_KEY = 'vpAL3';
+// 🔴 BURAYA KENDİ GOOGLE SHEETS WEB APP LİNKİNİ YAPIŞTIR 🔴
+const API_URL = "https://script.google.com/macros/s/AKfycbwy7t4qQNImbqQrhzVG_blZLeIttvv1O60bON2alVIOMQizSoygNfDuZcgEE0ZCEdIM/exec";
+
+let mudurYrdIsim = "";
+let allData = []; // Veritabanından gelen son 7 günün yoklamaları
+let uniqueClasses = []; // Son 7 günde işlem gören benzersiz sınıflar
+
+function checkAuth() {
+  const branch = localStorage.getItem(STORAGE_KEY + '_branch');
+  if (branch !== "MudurYardimcisi") {
+    window.location.href = "index.html"; 
+    return false;
+  }
+  const teacherName = localStorage.getItem(STORAGE_KEY + '_teacher') || "Müdür Yardımcısı";
+  mudurYrdIsim = teacherName.replace(" Hoca", "").trim();
+  
+  document.getElementById('pf-name').textContent = teacherName;
+  document.getElementById('pf-av').textContent = mudurYrdIsim.substring(0,2).toUpperCase();
+  return true;
+}
+
+function doLogout() {
+  // Standart onay kutusu yerine kendi şık penceremizi açıyoruz
+  document.getElementById('overlay-logout').style.display = 'flex';
+}
+
+function closeLogoutModal() {
+  document.getElementById('overlay-logout').style.display = 'none';
+}
+
+function executeLogout() {
+  localStorage.removeItem(STORAGE_KEY + '_teacher');
+  localStorage.removeItem(STORAGE_KEY + '_branch');
+  window.location.href = "index.html";
+}
+
+/* ═══════════════════════════════
+   VERİ ÇEKME & 7 GÜNLÜK FİLTRE (BACKEND)
+═══════════════════════════════ */
+async function fetchYoklamalar() {
+  try {
+    // Sadece bugünü değil, backend'den tüm yoklamaları çekiyoruz. (Backend getYoklamalar fonksiyonun güncellenmiş olmalı)
+    const url = API_URL + '?action=getYoklamalar&mudurYrd=' + encodeURIComponent(mudurYrdIsim) + '&_t=' + Date.now();
+    const resp = await fetch(url);
+    const data = await resp.json();
+    
+    // SON 7 GÜN FİLTRESİ
+    const birHaftaOnce = new Date();
+    birHaftaOnce.setDate(birHaftaOnce.getDate() - 7);
+    birHaftaOnce.setHours(0,0,0,0);
+
+    allData = data.filter(item => {
+      if(!item.tarih) return false;
+      const [gun, ay, yil] = item.tarih.split('.');
+      const kayitTarihi = new Date(yil, ay - 1, gun);
+      return kayitTarihi >= birHaftaOnce;
+    }).map(item => {
+      let ogrenciler = [];
+      if (item.gelmeyenler !== "Tüm Sınıf Mevcut") {
+        ogrenciler = item.gelmeyenler.split('\n').filter(Boolean).map(line => {
+          let parts = line.split(' - ');
+          return { no: parts[0] ? parts[0].trim() : "", ad: parts[1] ? parts[1].trim() : line };
+        });
+      }
+      return {
+        sinif: item.sinif,
+        dersNo: item.dersSaati, 
+        ogretmen: item.ogretmen,
+        gelSaat: item.saat, 
+        tarih: item.tarih,  
+        gelmeyenler: ogrenciler
+      };
+    });
+
+    uniqueClasses = [...new Set(allData.map(r => r.sinif))].sort();
+    buildSinifNav();
+    showPage("overview");
+
+  } catch (error) {
+    console.error("Veri çekme hatası:", error);
+    document.getElementById("main-content").innerHTML = `<div class="empty">❌ Veriler yüklenemedi.</div>`;
+  }
+}
+
+/* ═══════════════════════════════
+   STATE & ROUTING
+═══════════════════════════════ */
+let currentPage = "overview";
+let currentSinif = null;
+
+function showPage(page, sinif) {
+  currentPage = page;
+  if (sinif) currentSinif = sinif;
+
+  document.querySelectorAll(".nav-item, .sinif-sub").forEach(e => e.classList.remove("active"));
+
+  if (page === "overview") {
+    document.getElementById("nav-overview")?.classList.add("active");
+    renderOverview();
+  } else if (page === "sinif") {
+    const sel = document.querySelector(`[data-sinif="${currentSinif}"]`);
+    if(sel) sel.classList.add("active");
+    renderSinif();
+  } else if (page === "devamsizlik") {
+    document.getElementById("nav-abs")?.classList.add("active");
+    renderDevamsizlik();
+  }
+  closeSidebar();
+}
+
+function today() { return new Date().toLocaleDateString('tr-TR'); }
+
+/* ═══════════════════════════════
+   SIDEBAR SINIF LİSTESİ
+═══════════════════════════════ */
+function buildSinifNav() {
+  if (uniqueClasses.length === 0) {
+    document.getElementById("sinif-nav").innerHTML = '<div style="padding:10px; font-size:12px; color:var(--text3); font-style:italic;">Kayıt yok.</div>';
+    return;
+  }
+
+  document.getElementById("sinif-nav").innerHTML = uniqueClasses.map(s => {
+    // Toplam ders kaydı (Devamsızlık değil)
+    const clsKyt = allData.filter(r => r.sinif === s).length;
+    return `<div class="sinif-sub" data-sinif="${s}" onclick="showPage('sinif','${s}')">
+      <div class="sub-dot"></div>
+      ${s}
+      ${clsKyt > 0 ? `<span class="sub-badge" style="background:var(--text3);">${clsKyt} Kayıt</span>` : ""}
+    </div>`;
+  }).join("");
+}
+
+/* ═══════════════════════════════
+   GENEL BAKIŞ EKRANI
+═══════════════════════════════ */
+function renderOverview() {
+  if (allData.length === 0) {
+    document.getElementById("main-content").innerHTML = `<div class="empty anim"><div class="empty-icon">☕</div><div class="empty-text">Harika! Son 7 güne ait hiçbir yoklama kaydı bulunmuyor.</div></div>`;
+    return;
+  }
+
+  // MANTIK: Bir öğrenci aynı gün 3 derste yok yazıldıysa bile, o gün için 1 devamsızlık sayılmalı.
+  let uniqueAbsents = new Set();
+  allData.forEach(r => {
+    r.gelmeyenler.forEach(o => {
+      uniqueAbsents.add(r.tarih + "-" + r.sinif + "-" + o.no);
+    });
+  });
+
+  let html = `<div class="anim">
+    <div class="page-head">
+      <div class="breadcrumb">İdare Paneli</div>
+      <div class="page-title">Haftalık Genel Bakış</div>
+      <div class="page-sub">Son 7 güne ait sınıf ve devamsızlık özetleri</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val">${allData.length}</div><div class="stat-lbl">Toplam İşlenen Ders</div></div>
+      <div class="stat-card"><div class="stat-val val-red">${uniqueAbsents.size}</div><div class="stat-lbl">Devamsız Öğrenci (Gün Bazlı)</div></div>
+      <div class="stat-card"><div class="stat-val val-green">${uniqueClasses.length}</div><div class="stat-lbl">Aktif Sınıf Sayısı</div></div>
+    </div>`;
+
+  html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-family:var(--mono);margin-bottom:12px;">Sınıfların Haftalık Kayıtları</div>
+    <div class="sinif-grid">`;
+
+  uniqueClasses.forEach(s => {
+    const recs = allData.filter(r => r.sinif === s);
+    let classUniqueAbsents = new Set();
+    recs.forEach(r => { r.gelmeyenler.forEach(o => { classUniqueAbsents.add(r.tarih + "-" + o.no); }); });
+
+    html += `<div class="sinif-card ${classUniqueAbsents.size > 0 ? "has-absent" : ""}" onclick="showPage('sinif','${s}')">
+      <div class="sc-label">Sınıf</div>
+      <div class="sc-name">${s}</div>
+      <div class="sc-count">${recs.length} ders işlendi</div>
+      ${classUniqueAbsents.size > 0
+        ? `<div class="sc-absent"><div class="sc-absent-dot"></div>${classUniqueAbsents.size} devamsız öğrenci</div>`
+        : `<div class="sc-present">✅ Tam Kadro</div>`
+      }
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  document.getElementById("main-content").innerHTML = html;
+}
+
+/* ═══════════════════════════════
+   SINIF DETAY EKRANI (TARİH BAZLI AKORDEON)
+═══════════════════════════════ */
+function renderSinif() {
+  const classRecs = allData.filter(r => r.sinif === currentSinif);
+  
+  // Tarihlere göre grupla (Örn: 26.03.2026 -> [Ders1, Ders2...])
+  const groupedByDate = {};
+  classRecs.forEach(r => {
+    if(!groupedByDate[r.tarih]) groupedByDate[r.tarih] = [];
+    groupedByDate[r.tarih].push(r);
+  });
+
+  // Tarihleri yeni'den eskiye sırala
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+    const [da, ma, ya] = a.split('.'); const [db, mb, yb] = b.split('.');
+    return new Date(yb, mb-1, db) - new Date(ya, ma-1, da);
+  });
+
+  // Toplam benzersiz devamsız sayısını bul
+  let classUniqueAbsents = new Set();
+  classRecs.forEach(r => { r.gelmeyenler.forEach(o => { classUniqueAbsents.add(o.no); }); });
+
+  let html = `<div class="anim">
+    <div class="page-head">
+      <div class="breadcrumb"><a onclick="showPage('overview')">Genel Bakış</a> / ${currentSinif}</div>
+      <div class="page-title">${currentSinif} Sınıfı</div>
+      <div class="page-sub">Güne ve ders saatlerine göre yoklama arşivi</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val">${classRecs.length}</div><div class="stat-lbl">Haftalık Yoklama</div></div>
+      <div class="stat-card"><div class="stat-val val-red">${classUniqueAbsents.size}</div><div class="stat-lbl">Devamsızlık Yapan Öğrenci</div></div>
+    </div>`;
+
+  html += `<div style="display:flex; flex-direction:column; gap:20px;">`;
+  
+  sortedDates.forEach((tarih, dayIndex) => {
+    const gunlukDersler = groupedByDate[tarih];
+    const isToday = tarih === today();
+    
+    // O gün hiç devamsızlık yapan var mı?
+    let gunlukDevamsizSayisi = new Set();
+    gunlukDersler.forEach(r => r.gelmeyenler.forEach(o => gunlukDevamsizSayisi.add(o.no)));
+
+    // Ana Tarih Klasörü (Akordeon)
+    html += `
+    <div style="border: 2px solid ${isToday ? 'var(--red-line)' : 'var(--border)'}; border-radius: 8px; overflow: hidden; background: var(--surface);">
+      <div onclick="toggleDers('day-${dayIndex}')" style="padding: 16px 20px; background: ${isToday ? 'var(--red-bg)' : 'var(--bg)'}; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+        <div>
+          <div style="font-size: 16px; font-weight: 800; color: var(--text);">${tarih} ${isToday ? '<span style="color:var(--red); font-size:12px;">(Bugün)</span>' : ''}</div>
+          <div style="font-size: 12px; color: var(--text2); margin-top:4px;">${gunlukDersler.length} Ders Kaydı</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+           ${gunlukDevamsizSayisi.size > 0 ? `<div style="font-size:11px; font-weight:700; color:var(--red);">⚠️ ${gunlukDevamsizSayisi.size} Öğrenci Yok</div>` : `<div style="font-size:11px; font-weight:700; color:var(--green);">✅ Tam Kadro</div>`}
+           <span class="chevron" style="font-size:18px;">▾</span>
+        </div>
+      </div>
+      
+      <div id="day-${dayIndex}" style="display: ${isToday ? 'block' : 'none'}; padding: 15px; border-top: 1px solid var(--border);">
+        <div class="ders-list" style="box-shadow:none; border:none; gap:10px;">
+    `;
+
+    // O güne ait dersleri saatine göre sıralayarak listele
+    gunlukDersler.sort((a,b) => a.dersNo.localeCompare(b.dersNo)).forEach((r, i) => {
+      const hasAbs = r.gelmeyenler.length > 0;
+      
+      html += `
+        <div class="ders-row open" style="border:1px solid var(--border); border-radius:8px;">
+          <div class="ders-head" style="background:var(--surface);">
+            <div class="ders-num ${hasAbs ? "red" : ""}">${r.dersNo.charAt(0)}</div>
+            <div class="ders-info">
+              <div class="ders-name">${r.dersNo}</div>
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:4px;">
+                 <div class="ders-teacher" style="margin-top:0;">👨‍🏫 ${r.ogretmen}</div>
+                 <div style="font-family:var(--mono); font-size:10px; background:var(--bg); padding:2px 8px; border-radius:4px; color:var(--text2); font-weight:700;">
+                   🕒 ${r.gelSaat}
+                 </div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              ${hasAbs ? `<span class="badge-absent">${r.gelmeyenler.length} Devamsız</span>` : `<span class="badge-full">Tam Kadro</span>`}
+            </div>
+          </div>`;
+
+      if (hasAbs) {
+        html += `<div class="ders-body" style="padding-top:0;">
+          <div class="student-list-vertical" style="display: flex; flex-direction: column; gap: 4px;">`;
+        
+        r.gelmeyenler.sort((a, b) => parseInt(b.no) - parseInt(a.no));
+        r.gelmeyenler.forEach(o => {
+          html += `
+            <div class="student-pill absent" style="display: flex; width: 100%; justify-content: flex-start; padding: 8px 12px; background:var(--red-light); border:none;">
+              <div class="pill-dot r"></div>
+              <span style="font-family:var(--mono); width: 50px; display: inline-block;">${o.no}</span>
+              <span style="margin-left: 10px; text-transform: uppercase;">${o.ad}</span>
+            </div>`;
+        });
+        html += `</div></div>`;
+      }
+      html += `</div>`;
+    });
+
+    html += `</div></div></div>`; // Ders Listesi, Day Div, ve Wrapper kapanışı
+  });
+  
+  html += `</div></div>`; // Flex Container ve Anim Div kapanışı
+  document.getElementById("main-content").innerHTML = html;
+}
+
+function toggleDers(id) { 
+  const el = document.getElementById(id);
+  if(el) {
+    el.style.display = el.style.display === "none" ? "block" : "none"; 
+  }
+}
+
+/* ═══════════════════════════════
+   DEVAMSIZLIK RİSK ÖZETİ (Sadece 10+ ders gelmeyenler)
+═══════════════════════════════ */
+function renderDevamsizlik() {
+  let html = `
+    <div class="anim">
+      <div class="page-head">
+        <div class="breadcrumb"><a onclick="showPage('overview')" style="cursor:pointer; color:var(--red);">Genel Bakış</a> / Devamsızlık Özeti</div>
+        <div class="page-title">Haftalık Kritik Devamsızlıklar</div>
+        <div class="page-sub">Son 7 gün içinde <b>10 ders saati ve üzeri</b> devamsızlık yapan kritik öğrenciler</div>
+      </div>
+  `;
+
+  let tabloCizildiMi = false;
+
+  uniqueClasses.forEach(function(sinif) {
+    const classRecs = allData.filter(function(r) { return r.sinif === sinif; });
+    const absMap = {};
+
+    classRecs.forEach(function(r) {
+      r.gelmeyenler.forEach(function(o) {
+        const key = o.no + " - " + o.ad;
+        absMap[key] = (absMap[key] || 0) + 1;
+      });
+    });
+
+    const sorted = Object.entries(absMap)
+      .filter(function(e) { return e[1] >= 10; }) 
+      .sort(function(a, b) { return b[1] - a[1]; });
+
+    if (sorted.length === 0) return;
+
+    tabloCizildiMi = true;
+
+    html += `
+      <div class="abs-table-wrap" style="border-color:var(--red-line);">
+        <div class="abs-table-head" style="background:var(--red-bg); border-bottom:2px solid var(--red-line);">
+          <div class="abs-table-title" style="color:var(--red); flex:1;">⚠️ ${sinif} - RİSKLİ ÖĞRENCİLER</div>
+          <div class="abs-table-sub" style="color:var(--red-dk); font-weight:800;">${sorted.length} Öğrenci Limit Aşımında</div>
+        </div>
+        <table class="abs-table">
+          <thead>
+            <tr>
+              <th>Öğrenci Bilgisi</th>
+              <th style="text-align:center;">Toplam Ders Yok</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    sorted.forEach(function(e) {
+      const ogrBilgi = e[0];
+      const cnt = e[1];
+      const splitBilgi = ogrBilgi.split(' - ');
+      const ogrNo = splitBilgi[0];
+      const ogrAd = splitBilgi[1] || "";
+
+      html += `
+            <tr class="risk-row">
+              <td>
+                 <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="td-no" style="color:var(--red);">${ogrNo}</div>
+                    <div style="font-weight:700; color:var(--text);">${ogrAd}</div>
+                 </div>
+              </td>
+              <td style="text-align:center;">
+                <span class="abs-num" style="color:var(--red); font-size:16px;">${cnt}</span>
+              </td>
+              <td style="font-size:11px; font-family:var(--mono);">
+                <span style="background:var(--red); color:#fff; padding:2px 6px; border-radius:4px; font-weight:800;">🛑 KRİTİK</span>
+              </td>
+            </tr>
+      `;
+    });
+
+    html += `</tbody></table></div>`;
+  });
+
+  if (!tabloCizildiMi) {
+    html += `
+      <div class="empty">
+        <div class="empty-icon">🛡️</div>
+        <div class="empty-text">Şu an için 10 ders saati sınırını aşan riskli bir öğrenci bulunmuyor.</div>
+      </div>
+    `;
+  }
+
+  html += `</div>`;
+  document.getElementById("main-content").innerHTML = html;
+}
+
+/* ═══════════════════════════════
+   TEMEL YARDIMCILAR
+═══════════════════════════════ */
+function updateClock() {
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  const el = document.getElementById("clock");
+  if (el) el.textContent = `${h}:${m}`;
+}
+
+function toggleSidebar() {
+  document.getElementById("sidebar")?.classList.toggle("open");
+  document.getElementById("overlay")?.classList.toggle("open");
+}
+function closeSidebar() {
+  document.getElementById("sidebar")?.classList.remove("open");
+  document.getElementById("overlay")?.classList.remove("open");
+}
+function applyTheme() {
+  var isDark = localStorage.getItem('vpAL3_theme') === 'dark';
+  document.body.classList.toggle('dark', isDark);
+}
+function toggleTheme() {
+  var isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('vpAL3_theme', isDark ? 'dark' : 'light');
+}
+
+/* ═══════════════════════════════
+   BAŞLANGIÇ
+═══════════════════════════════ */
+document.addEventListener("DOMContentLoaded", () => {
+  applyTheme();
+  if (checkAuth()) {
+    updateClock();
+    setInterval(updateClock, 30000);
+    fetchYoklamalar();
+  }
+});
+</script>
+</body>
+</html>

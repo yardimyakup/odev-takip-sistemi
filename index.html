@@ -1069,6 +1069,57 @@ body.dark .teacher-desk-vertical {
   margin-bottom: 2px;
   text-align: center;
 }
+
+/* YOKLAMA MODU STİLLERİ */
+.yoklama-bar { display:none; background:var(--card); padding:12px 14px; border-bottom:1px solid var(--border); gap:10px; flex-wrap:wrap; }
+.yoklama-bar.active { display:flex; }
+.yoklama-select { flex:1; min-width:140px; padding:10px; border:1.5px solid var(--border); border-radius:var(--r-sm); font-size:13px; font-weight:700; color:var(--text); background:var(--gray-50); outline:none; }
+body.dark .yoklama-select { background:var(--gray-100); border-color:var(--border); color:var(--text); }
+.yoklama-select:focus { border-color:var(--red); }
+.s-row.absent { background:var(--red-score-bg); border-color:var(--red-score-border); }
+.s-row.absent::before { background:var(--red-score); }
+.absent-check { width:24px; height:24px; border:2px solid var(--gray-300); border-radius:6px; display:flex; align-items:center; justify-content:center; color:transparent; transition:0.2s; font-weight:bold; }
+.s-row.absent .absent-check { background:var(--red-score); border-color:var(--red-score); color:#fff; }
+.btn-yoklama-gonder { width:100%; background:var(--text); color:#fff; border:none; padding:14px; border-radius:var(--r-sm); font-size:15px; font-weight:800; margin-top:10px; cursor:pointer; transition:0.2s; box-shadow:0 4px 15px rgba(0,0,0,0.1); }
+.btn-yoklama-gonder:active { transform:scale(0.97); }
+.mode-btn-close { flex:0 0 auto; padding:10px 14px; background:var(--red-score-bg); color:var(--red-score); border-radius:8px; border:none; font-weight:900; cursor:pointer; display:none; transition:0.2s; font-family:var(--font); }
+
+/* ═══════════════════════════════════════
+   YOKLAMA TAM EKRAN MODU STİLLERİ
+═══════════════════════════════════════ */
+body.yoklama-mode .topbar,
+body.yoklama-mode .asgn-hero,
+body.yoklama-mode .mode-toggle,
+body.yoklama-mode .mult-bar,
+body.yoklama-mode .quick-stats,
+body.yoklama-mode .list-bar,
+body.yoklama-mode .save-bar { display: none !important; }
+
+.yoklama-header { display:none; background:linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%); padding:20px 16px; color:#fff; position:sticky; top:0; z-index:300; box-shadow:var(--shadow-md); border-radius:0 0 var(--r) var(--r); margin-bottom:15px; }
+body.yoklama-mode .yoklama-header { display:flex; flex-direction:column; gap:15px; animation:sheetUp 0.3s ease; }
+.yoklama-header-top { display:flex; justify-content:space-between; align-items:center; }
+.yoklama-title { font-size:22px; font-weight:900; font-family:var(--font-mono); }
+.yoklama-close { background:rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:8px 14px; border-radius:20px; font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; transition:0.2s; }
+.yoklama-close:active { background:rgba(0,0,0,0.3); transform:scale(0.95); }
+.yoklama-filters { display:flex; gap:10px; }
+.yoklama-select { flex:1; padding:12px; border-radius:var(--r-sm); border:none; outline:none; font-size:13px; font-weight:700; color:var(--text); background:var(--card); box-shadow:var(--shadow-xs); -webkit-appearance:none; }
+body.dark .yoklama-select { background:var(--card); color:var(--text); }
+
+body.yoklama-mode #asgn-scroll { padding-bottom: 100px; padding-top:0; }
+body.yoklama-mode .student-list { padding:0 14px; }
+body.yoklama-mode .s-row { border:2px solid transparent; box-shadow:var(--shadow-sm); padding:16px 14px; margin-bottom:10px; border-radius:var(--r-sm); }
+body.yoklama-mode .s-row.absent { background:var(--red-score-bg); border-color:var(--red-score-border); }
+body.yoklama-mode .s-row.absent::before { display:none; }
+body.yoklama-mode .s-no { font-size:14px; padding:6px 10px; background:var(--gray-100); }
+body.yoklama-mode .s-row.absent .s-no { background:var(--red-light); color:var(--red-score); border-color:var(--red-score-border); }
+body.yoklama-mode .s-name { font-size:16px; font-weight:800; }
+
+.absent-check { width:28px; height:28px; border:2px solid var(--gray-300); border-radius:8px; display:flex; align-items:center; justify-content:center; color:transparent; transition:0.2s; font-weight:900; font-size:16px; flex-shrink:0; }
+.s-row.absent .absent-check { background:var(--red-score); border-color:var(--red-score); color:#fff; }
+
+.yoklama-floating-btn { display:none; position:fixed; bottom:20px; left:16px; right:16px; background:linear-gradient(135deg, var(--text) 0%, var(--gray-700) 100%); color:#fff; border:none; padding:16px; border-radius:var(--r); font-size:16px; font-weight:800; box-shadow:var(--shadow-xl); z-index:300; cursor:pointer; text-align:center; transition:transform 0.2s; letter-spacing:0.5px; }
+body.yoklama-mode .yoklama-floating-btn { display:block; animation:sheetUp 0.4s ease; }
+.yoklama-floating-btn:active { transform:scale(0.97); }
 </style>
 </head>
 <body>
@@ -1413,6 +1464,38 @@ function checkRehberDurum() {
   </div>
 
   <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:90px;" id="asgn-scroll">
+    
+<div class="yoklama-header" id="yoklama-header">
+      <div class="yoklama-header-top">
+        <button class="yoklama-close" onclick="switchInputMode('perf')">✕ Çıkış</button>
+        <div class="yoklama-title" id="yoklama-title-text">Yoklama</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.2); padding:10px; border-radius:8px; font-size:12px; font-weight:700; text-align:center; margin-top:5px; margin-bottom:10px;">
+        ⚠️ Lütfen listeden sadece sınıfta OLMAYAN (gelmeyen) öğrencileri işaretleyiniz.
+      </div>
+      <div class="yoklama-filters" style="display:flex; gap:10px;">
+        <select class="yoklama-select" id="yoklama-mudur-yrd" style="color:#333;">
+          <option value="">İdareci Seçin</option>
+          <option value="Derya">Derya Hoca</option>
+          <option value="Duygu">Duygu Hoca</option>
+          <option value="Dilek">Dilek Hoca</option>
+          <option value="Neval">Neval Hoca</option>
+        </select>
+        <select class="yoklama-select" id="yoklama-ders" style="color:#333;">
+          <option value="">Ders Saati</option>
+          <option value="1. Ders">1. Ders</option>
+          <option value="2. Ders">2. Ders</option>
+          <option value="3. Ders">3. Ders</option>
+          <option value="4. Ders">4. Ders</option>
+          <option value="5. Ders">5. Ders</option>
+          <option value="6. Ders">6. Ders</option>
+          <option value="7. Ders">7. Ders</option>
+          <option value="8. Ders">8. Ders</option>
+        </select>
+      </div>
+    </div>
+ 
+
     <div class="asgn-hero">
       <div style="position:relative;z-index:2;">
         <div class="asgn-classname" id="asgn-classname">—</div>
@@ -1426,13 +1509,12 @@ function checkRehberDurum() {
       </div>
     </div>
 
-    <!-- HOMEWORK -->
     <div class="mode-toggle">
-      <button class="mode-btn active" id="mode-perf" onclick="switchInputMode('perf')">📝 Performans (+ / -)</button>
-      <button class="mode-btn" id="mode-exam" onclick="switchInputMode('exam')">💯 Sınav Notu&Sözlü Notu</button>
+      <button class="mode-btn" id="mode-yoklama" onclick="switchInputMode('yoklama')" style="background:var(--red-light); color:var(--red-dark); border:1px solid var(--red-mid);">📋 Yoklama</button>
+      <button class="mode-btn active" id="mode-perf" onclick="switchInputMode('perf')">📝 Performans</button>
+      <button class="mode-btn" id="mode-exam" onclick="switchInputMode('exam')">💯 Sınav/Sözlü</button>
     </div>
 
-    <!-- MULTIPLIER -->
     <div class="mult-bar">
       <div class="mult-label">⚡ Puan Çarpanı</div>
       <div class="mult-ctrl">
@@ -1453,14 +1535,12 @@ function checkRehberDurum() {
       </div>
     </div>
 
-    <!-- QUICK STATS -->
     <div class="quick-stats">
       <div class="qs-item qs-plus" ><span class="qs-n" id="qs-plus">0</span><span class="qs-l">Yaptı ✓</span></div>
       <div class="qs-item qs-minus"><span class="qs-n" id="qs-minus">0</span><span class="qs-l">Yapmadı ✗</span></div>
       <div class="qs-item qs-blank"><span class="qs-n" id="qs-blank">0</span><span class="qs-l">Boş —</span></div>
     </div>
 
-    <!-- STUDENT AREA -->
     <div id="student-area">
       <div class="empty-state">
         <span class="empty-icon">⏳</span>
@@ -1469,7 +1549,8 @@ function checkRehberDurum() {
     </div>
   </div>
 
-  <!-- SAVE BAR -->
+  <button class="yoklama-floating-btn" onclick="openYoklamaConfirm()">Yoklamayı İdareye Gönder 🚀</button>
+
   <div class="save-bar">
     <div class="save-info">
       <div class="save-info-label">Özet</div>
@@ -1816,6 +1897,26 @@ function checkRehberDurum() {
   </div>
 </div>
 
+
+<div class="overlay center" id="overlay-yoklama-confirm">
+  <div class="sheet centered" style="max-width:360px;">
+    <div style="font-size:40px;margin-bottom:10px;">📋</div>
+    <div class="sheet-title" style="justify-content:center;display:flex;margin-bottom:8px;">Yoklamayı Gönder</div>
+    <div style="font-size:13px;color:var(--gray-500);font-weight:600;margin-bottom:15px;" id="yoklama-onay-bilgi">...</div>
+    
+    <div style="background:var(--gray-50); border:1px solid var(--border); border-radius:var(--r-sm); padding:10px; max-height:150px; overflow-y:auto; text-align:left; margin-bottom:20px;">
+      <div style="font-size:11px; font-weight:800; color:var(--red-score); margin-bottom:8px;">GELMEYEN ÖĞRENCİLER:</div>
+      <ul id="yoklama-onay-liste" style="list-style:none; font-size:13px; font-weight:700; color:var(--text); padding-left:5px; line-height:1.6;">
+      </ul>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-yoklama-confirm')">İptal</button>
+      <button class="btn-full btn-full-red" onclick="submitYoklama()" id="btn-yoklama-submit">Evet, Gönder</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════ -->
@@ -1825,7 +1926,7 @@ function checkRehberDurum() {
 // ════════════════════════════════
 // SABITLER
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbwq5IOhsmp2jkAIGoKG-fknuNlPs5Hk2_X92bTIp0GpHlPsLFlldGBFC_xldx2D_xEp/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwy7t4qQNImbqQrhzVG_blZLeIttvv1O60bON2alVIOMQizSoygNfDuZcgEE0ZCEdIM/exec";
 const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
 const BRANCH_LABELS = { Edebiyat: 'T\u00fcrk Dili ve Edebiyat\u0131', Ingilizce: '\u0130ngilizce', Fransizca: 'Frans\u0131zca' };
 const STORAGE_KEY = 'vpAL3';
@@ -1926,6 +2027,12 @@ hydrate();
 async function boot() {
   applyTheme();
   if (state.teacher) {
+    // 🌟 YENİ: OTURUM AÇIKSA VE İDARECİYSE DİREKT PANELE AT 🌟
+    if (state.branch === "MudurYardimcisi") {
+      window.location.href = "panel.html";
+      return;
+    }
+
     var lastScreen  = localStorage.getItem('vpAL3_lastScreen');
     var lastClassId = localStorage.getItem('vpAL3_lastClassId');
 
@@ -2023,9 +2130,9 @@ function setErr(msg) { document.getElementById('login-err').textContent = msg; }
 async function doLogin() {
   var name = document.getElementById('li-name').value.trim();
   var pass = document.getElementById('li-pass').value.trim();
-  if (!name || !pass) { setErr('Ad soyad ve \u015fifre giriniz.'); return; }
+  if (!name || !pass) { setErr('Ad soyad ve şifre giriniz.'); return; }
   var btn = document.getElementById('btn-giris');
-  btn.textContent = 'Giri\u015f yap\u0131l\u0131yor...'; btn.disabled = true; setErr('');
+  btn.textContent = 'Giriş yapılıyor...'; btn.disabled = true; setErr('');
   try {
     var url = API_URL + '?action=login&user=' + encodeURIComponent(name) + '&pass=' + encodeURIComponent(pass);
     var resp = await fetch(url);
@@ -2034,12 +2141,19 @@ async function doLogin() {
       state.teacher = result.fullName; state.branch = result.branch || 'Diger';
       localStorage.setItem(STORAGE_KEY + '_teacher', state.teacher);
       localStorage.setItem(STORAGE_KEY + '_branch',  state.branch);
+      
+      // 🌟 YENİ: MÜDÜR YARDIMCISI YÖNLENDİRMESİ 🌟
+      if (state.branch === "MudurYardimcisi") {
+        window.location.href = "panel.html"; // Diğer sisteme at
+        return;
+      }
+      
       hydrate(); await loadTeacherProfile(state.teacher);
-      notify('Giri\u015f ba\u015far\u0131l\u0131! Ho\u015f geldiniz \uD83C\uDF89', 'success');
+      notify('Giriş başarılı! Hoş geldiniz 🎉', 'success');
       showDashboard();
-    } else { setErr(result.msg || 'Ad soyad veya \u015fifre yanl\u0131\u015f.'); }
-  } catch (e) { setErr('Sunucuya ba\u011flan\u0131lamad\u0131. \u0130nternet ba\u011flant\u0131n\u0131z\u0131 kontrol edin.'); }
-  btn.textContent = 'Giri\u015f Yap \u2192'; btn.disabled = false;
+    } else { setErr(result.msg || 'Ad soyad veya şifre hatalı.'); }
+  } catch (e) { setErr('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.'); }
+  btn.textContent = 'Giriş Yap →'; btn.disabled = false;
 }
 
 async function doRegister() {
@@ -2263,21 +2377,41 @@ function changeMult(type, delta) {
 
 function switchInputMode(mode) {
   state.inputMode = mode;
-  document.getElementById('mode-perf').classList.toggle('active', mode === 'perf');
-  document.getElementById('mode-exam').classList.toggle('active', mode === 'exam');
+  
+  // 🌟 Tam Ekran Yoklama Modu Tetikleyicisi 🌟
+if (mode === 'yoklama') {
+    document.body.classList.add('yoklama-mode');
+    state.absentStudents = {}; 
+    var clsName = state.currentClass ? state.currentClass.name : "Sınıf";
+    var titleEl = document.getElementById('yoklama-title-text');
+    // GÜVENLİK KALKANI: Element varsa değiştir, yoksa hata verme!
+    if (titleEl) {
+      titleEl.textContent = clsName;
+    }
+  } else {
+    document.body.classList.remove('yoklama-mode');
+  }
+
+  // Buton aktiflik durumları
+  var btnPerf = document.getElementById('mode-perf');
+  var btnExam = document.getElementById('mode-exam');
+  var btnYokl = document.getElementById('mode-yoklama');
+  if(btnPerf) btnPerf.classList.toggle('active', mode === 'perf');
+  if(btnExam) btnExam.classList.toggle('active', mode === 'exam');
+  if(btnYokl) btnYokl.classList.toggle('active', mode === 'yoklama');
+
   var multBar = document.querySelector('.mult-bar');
   var quickStats = document.querySelector('.quick-stats');
-  if (multBar)    multBar.classList.toggle('hidden-in-exam', mode === 'exam');
-  if (quickStats) quickStats.classList.toggle('hidden-in-exam', mode === 'exam');
+  if (multBar) multBar.style.display = (mode === 'exam' || mode === 'yoklama') ? 'none' : 'flex';
+  if (quickStats) quickStats.style.display = (mode === 'exam' || mode === 'yoklama') ? 'none' : 'flex';
+
   renderStudentArea();
 }
 
-// ════════════════════════════════
-// ÖĞRENCİ ALANI
-// ════════════════════════════════
+// 🌟 SİLİNEN FONKSİYON GERİ GELDİ (Hatanın Sebebi Buydu) 🌟
 function calcStudentTotals(studentNo) {
   if (!state.currentClass) return { plus: 0, minus: 0, exam1: '', exam2: '' };
-  var targetLabel = state.currentClass.label || '\u0130simsiz Liste';
+  var targetLabel = state.currentClass.label || 'İsimsiz Liste';
   var plus = 0, minus = 0, exam1 = '', exam2 = '', e1Found = false, e2Found = false;
   Object.keys(state.statuses).forEach(function (hwId) {
     if (hwId !== '_general' && hwId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
@@ -2295,32 +2429,137 @@ function calcStudentTotals(studentNo) {
   return { plus: plus, minus: minus, exam1: exam1, exam2: exam2 };
 }
 
+
+
 function renderStudentArea() {
   var students = state.students;
   if (!students || students.length === 0) return;
   var activeId = state.currentHwId || '_general';
   var hwSt = state.statuses[activeId] || {};
+  
   var rowsHtml = students.map(function (s) {
     return renderSRow(s, hwSt[s.no] || null, hwSt[s.no + '_exam'] || null, calcStudentTotals(s.no));
   }).join('');
+  
   var shortcutBtns = '';
   if (state.inputMode === 'perf') {
     shortcutBtns = '<div class="shortcut-btns">' +
-      '<button class="sc-btn sc-plus"  onclick="setAll(\'plus\')">\u2713 T\u00fcm\u00fc</button>' +
-      '<button class="sc-btn sc-minus" onclick="setAll(\'minus\')">\u2717 T\u00fcm\u00fc</button>' +
+      '<button class="sc-btn sc-plus"  onclick="setAll(\'plus\')">✓ Tümü</button>' +
+      '<button class="sc-btn sc-minus" onclick="setAll(\'minus\')">✗ Tümü</button>' +
       '</div>';
+  } else if (state.inputMode === 'yoklama') {
+    shortcutBtns = '<div style="font-size:11px; font-weight:800; color:var(--red); padding:4px 8px; border:1px solid var(--red-mid); border-radius:8px; background:var(--red-light);">Yoklama Modu Aktif</div>';
   }
+  
   var area = document.getElementById('student-area');
   area.innerHTML =
     '<div class="list-bar">' +
-      '<div class="list-bar-info"><span>' + state.currentClass.name + '</span> \u00b7 ' + students.length + ' \u00f6\u011frenci</div>' +
+      '<div class="list-bar-info"><span>' + state.currentClass.name + '</span> · ' + students.length + ' öğrenci</div>' +
       shortcutBtns +
     '</div>' +
+    // Çift buton hatası giderildi, sadece öğrenci listesi basılıyor!
     '<div class="student-list">' + rowsHtml + '</div>';
 }
 
+function openYoklamaConfirm() {
+  var mudurYrd = document.getElementById('yoklama-mudur-yrd').value;
+  var dersSaati = document.getElementById('yoklama-ders').value;
+
+  if(!mudurYrd || !dersSaati) {
+    notify("Lütfen İdareci ve Ders Saati seçin!", "error", 3500);
+    return;
+  }
+
+  var listeEl = document.getElementById('yoklama-onay-liste');
+  listeEl.innerHTML = '';
+  var absentCount = 0;
+
+  if(!state.absentStudents) state.absentStudents = {};
+
+  state.students.forEach(function(s) {
+    if(state.absentStudents[s.no]) {
+      absentCount++;
+      listeEl.innerHTML += '<li>' + s.no + ' - ' + s.ad + ' ' + s.soyad + '</li>';
+    }
+  });
+
+  if(absentCount === 0) {
+    listeEl.innerHTML = '<li style="color:var(--green);">Tüm sınıf mevcut (Eksik yok).</li>';
+  }
+
+  document.getElementById('yoklama-onay-bilgi').innerHTML = 
+    '<b>' + dersSaati + '</b> için <b>' + mudurYrd + ' Hoca</b>\'ya ' + absentCount + ' gelmeyen öğrenci bildirilecek.';
+
+  openOverlay('overlay-yoklama-confirm');
+}
+
+async function submitYoklama() {
+  var mudurYrd = document.getElementById('yoklama-mudur-yrd').value;
+  var dersSaati = document.getElementById('yoklama-ders').value;
+  var btn = document.getElementById('btn-yoklama-submit');
+  
+  btn.innerHTML = '<span class="spin"></span> Gönderiliyor...';
+  btn.disabled = true;
+
+  var absentList = [];
+  state.students.forEach(function(s) {
+    if(state.absentStudents[s.no]) {
+      absentList.push({ no: s.no, name: s.ad + ' ' + s.soyad });
+    }
+  });
+
+  var payload = {
+    action: 'saveYoklama',
+    teacher: state.teacher,
+    className: state.currentClass.name,
+    mudurYrd: mudurYrd,
+    dersSaati: dersSaati,
+    absentStudents: absentList,
+    date: today(),
+    time: new Date().toLocaleTimeString('tr-TR')
+  };
+
+  try {
+    var resp = await fetch(API_URL, { 
+      method: 'POST', mode: 'cors', 
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+      body: JSON.stringify(payload) 
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    
+    notify('Yoklama ' + mudurYrd + ' Hoca\'ya başarıyla gönderildi! ✅', 'success', 4000);
+    closeOverlay('overlay-yoklama-confirm');
+    
+    // Gönderim bitince seçim kutularını sıfırla ki hoca yanlışlıkla tekrar yollamasın
+    document.getElementById('yoklama-mudur-yrd').value = "";
+    document.getElementById('yoklama-ders').value = "";
+    
+    switchInputMode('perf'); // Performans moduna otomatik geri dön
+    
+  } catch(e) {
+    notify('Bağlantı hatası! Yoklama gönderilemedi.', 'error');
+  }
+  
+  btn.innerHTML = 'Evet, Gönder';
+  btn.disabled = false;
+}
+
+
 function renderSRow(student, status, examStatus, totals) {
   var no = student.no;
+  
+  // YOKLAMA MODU ÇİZİMİ
+  if (state.inputMode === 'yoklama') {
+    if(!state.absentStudents) state.absentStudents = {};
+    var isAbsent = state.absentStudents[no];
+    var rowClass = isAbsent ? 's-row absent' : 's-row';
+    return '<div class="' + rowClass + '" id="row-' + no + '" onclick="toggleAbsent(\'' + no + '\')" style="cursor:pointer;">' +
+           (no ? '<div class="s-no">' + no + '</div>' : '') +
+           '<div class="s-name-col"><div class="s-name">' + student.ad + ' ' + student.soyad + '</div></div>' +
+           '<div class="absent-check">✓</div></div>';
+  }
+
+  // PERFORMANS & SINAV MODU ÇİZİMİ
   var examNotes = { '1': '', '2': '' };
   if (examStatus) {
     var ep = String(examStatus).split('|');
@@ -2328,29 +2567,33 @@ function renderSRow(student, status, examStatus, totals) {
   } else if (totals) {
     examNotes['1'] = totals.exam1 || ''; examNotes['2'] = totals.exam2 || '';
   }
-  var targetLabel = state.currentClass.label || '\u0130simsiz Liste';
+  var targetLabel = state.currentClass.label || 'İsimsiz Liste';
   var noteKey  = state.currentClass.id + '_' + targetLabel;
   var clsNotes = state.notes[noteKey] || {};
   var hasNote  = !!(clsNotes[no]);
   var totalPlus  = totals ? totals.plus  : 0;
   var totalMinus = totals ? totals.minus : 0;
   var score = '';
+  
   if (state.inputMode === 'perf') {
     if (status === 'plus')  score = '+' + state.multPlus;
-    if (status === 'minus') score = '\u2212' + state.multMinus;
+    if (status === 'minus') score = '−' + state.multMinus;
   }
+  
   var histHtml = '';
   if (totalPlus > 0 || totalMinus > 0) {
     histHtml = '<div class="s-history">' +
-      (totalPlus  > 0 ? '<span class="h-plus">+'  + totalPlus  + ' \u2713</span>' : '') +
-      (totalMinus > 0 ? '<span class="h-minus">\u2212' + totalMinus + ' \u2717</span>' : '') +
+      (totalPlus  > 0 ? '<span class="h-plus">+'  + totalPlus  + ' ✓</span>' : '') +
+      (totalMinus > 0 ? '<span class="h-minus">−' + totalMinus + ' ✗</span>' : '') +
     '</div>';
   }
+  
   var rowClass = 's-row';
   if (state.inputMode === 'perf') {
     if (status === 'plus')  rowClass += ' done';
     if (status === 'minus') rowClass += ' miss';
   }
+  
   var rightSide = '';
   if (state.inputMode === 'exam') {
     rightSide = '<div class="exam-inputs-wrap">' +
@@ -2360,18 +2603,49 @@ function renderSRow(student, status, examStatus, totals) {
       '<input type="number" class="exam-input" placeholder="-" value="' + examNotes['2'] + '" onchange="setExamScore(\'' + no + '\', this.value, \'2\')"></div>' +
       '</div>';
   } else {
-    rightSide = '<button class="s-note-btn' + (hasNote ? ' has-note' : '') + '" onclick="openNote(\'' + no + '\',\'' + student.ad + ' ' + student.soyad + '\')">' + (hasNote ? '\uD83D\uDCCC' : '\uD83D\uDCDD') + '</button>' +
+    rightSide = '<button class="s-note-btn' + (hasNote ? ' has-note' : '') + '" onclick="openNote(\'' + no + '\',\'' + student.ad + ' ' + student.soyad + '\')">' + (hasNote ? '📌' : '📝') + '</button>' +
       '<div class="s-btns">' +
       '<button class="s-btn s-btn-plus"  onclick="setStatus(\'' + no + '\',\'plus\')">+</button>' +
-      '<button class="s-btn s-btn-minus" onclick="setStatus(\'' + no + '\',\'minus\')">\u2212</button>' +
+      '<button class="s-btn s-btn-minus" onclick="setStatus(\'' + no + '\',\'minus\')">−</button>' +
       '</div>';
   }
   var badgeStyle = state.inputMode === 'exam' ? ' style="display:none;"' : '';
+  
   return '<div class="' + rowClass + '" id="row-' + no + '">' +
     (no ? '<div class="s-no">' + no + '</div>' : '') +
     '<div class="s-name-col"><div class="s-name">' + student.ad + ' ' + student.soyad + '</div>' + histHtml + '</div>' +
     '<span class="s-score-badge"' + badgeStyle + '>' + score + '</span>' + rightSide + '</div>';
 }
+
+// YOKLAMA İŞARETLEME FONKSİYONU
+function toggleAbsent(no) {
+  if (state.inputMode !== 'yoklama') return;
+  if (!state.absentStudents) state.absentStudents = {};
+  
+  if (state.absentStudents[no]) {
+    delete state.absentStudents[no];
+  } else {
+    state.absentStudents[no] = true;
+  }
+  
+  // Sadece o satırı güncelle (hızlı çalışsın diye)
+  var row = document.getElementById('row-' + no);
+  if (row) {
+    if(state.absentStudents[no]) {
+      row.classList.add('absent');
+    } else {
+      row.classList.remove('absent');
+    }
+  }
+}
+
+// YOKLAMA ONAY EKRANI
+
+
+// YOKLAMAYI GOOGLE SHEETS'E GÖNDER
+
+
+
 
 function updateRow(no) {
   var row = document.getElementById('row-' + no);
@@ -3352,6 +3626,27 @@ function onSeatChange() {
       usedNos[sel.value] = true;
     }
   });
+}
+
+
+function calcStudentTotals(studentNo) {
+  if (!state.currentClass) return { plus: 0, minus: 0, exam1: '', exam2: '' };
+  var targetLabel = state.currentClass.label || 'İsimsiz Liste';
+  var plus = 0, minus = 0, exam1 = '', exam2 = '', e1Found = false, e2Found = false;
+  Object.keys(state.statuses).forEach(function (hwId) {
+    if (hwId !== '_general' && hwId.indexOf(state.currentClass.id + '_' + targetLabel) === -1) return;
+    var hwData = state.statuses[hwId];
+    var ms = (state.multScores && state.multScores[hwId]) ? state.multScores[hwId] : { plus: 1, minus: 1 };
+    if (hwData[studentNo] === 'plus')  plus  += ms.plus;
+    if (hwData[studentNo] === 'minus') minus += ms.minus;
+    var exSt = hwData[studentNo + '_exam'];
+    if (exSt) {
+      var parts = String(exSt).split('|');
+      if (parts[0] && !e1Found) { exam1 = parts[0]; e1Found = true; }
+      if (parts[1] && !e2Found) { exam2 = parts[1]; e2Found = true; }
+    }
+  });
+  return { plus: plus, minus: minus, exam1: exam1, exam2: exam2 };
 }
 
 async function saveSeatingPlan() {
