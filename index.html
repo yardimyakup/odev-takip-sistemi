@@ -2461,6 +2461,15 @@ async function openClass(classId) {
     var url = API_URL + '?action=getStudents&className=' + encodeURIComponent(cls.name) + '&teacher=' + encodeURIComponent(state.teacher) + '&token=' + encodeURIComponent(state.token) + '&_t=' + Date.now();
     var resp = await fetch(url);
     var students = await resp.json();
+    
+    // 🌟 YENİ: YETKİ HATASI GELDİYSE ÖĞRENCİ LİSTESİ YERİNE UYARI VER
+    if (students && students.error) {
+       area.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-text">Güvenlik Hatası: Tekrar giriş yapın.</div></div>';
+       notify(students.error, 'error', 3000);
+       if (students.error.indexOf('Yetkisiz') !== -1) setTimeout(confirmLogout, 1500);
+       return;
+    }
+
     if (!Array.isArray(students) || students.length === 0) {
       area.innerHTML = '<div class="empty-state"><span class="empty-icon">\uD83D\uDCED</span><div class="empty-text"><b>' + cls.name + '</b> i\u00e7in \u00f6\u011frenci bulunamad\u0131.</div></div>';
       return;
@@ -3221,27 +3230,37 @@ try {
 
 async function loadTeacherProfile(teacherName) {
   try {
-    // YENİ: URL'ye token parametresi eklendi
     var url = API_URL + '?action=getTeacherData&teacher=' + encodeURIComponent(teacherName) + '&token=' + encodeURIComponent(state.token) + '&_t=' + Date.now();
     var resp = await fetch(url); 
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     
     var text = await resp.text();
     if (!text || text.trim() === '' || text.trim() === 'null') return;
-    if (text.indexOf('HATA:') === 0 || text.indexOf('Error') === 0) { console.warn('Backend:', text); return; }
+    
+    // 🌟 YENİ: SUNUCUDAN HATA GELİRSE LİSTEYİ SİLME, ÇIKIŞA YÖNLENDİR!
+    if (text.indexOf('HATA') !== -1 || text.indexOf('error') !== -1) { 
+      console.warn('Güvenlik Uyarısı:', text); 
+      if (text.indexOf('Yetkisiz') !== -1 || text.indexOf('Geçersiz') !== -1) {
+          notify('Oturumunuz geçersiz! Lütfen tekrar giriş yapın.', 'error', 4000);
+          setTimeout(confirmLogout, 1500); // Otomatik çıkış yaptırır
+      }
+      return; // İşlemi durdur, verileri silmesini engelle!
+    }
     
     var data = JSON.parse(text);
     if (data && typeof data === 'object') {
+      if (data.error) return; // Ekstra güvenlik
+      
       state.classes = data.classes || []; 
       state.notes = data.notes || {};
       state.statuses = data.statuses || {}; 
       state.multScores = data.multScores || {};
       state.seatingPlans = data.seatingPlans || {}; 
       persist(); 
-      console.log('Profil yuklendi:', state.classes.length, 'sinif');
+      console.log('Profil yüklendi:', state.classes.length, 'sınıf');
     }
   } catch (e) { 
-    console.error('Profil yuklenemedi:', e.message); 
+    console.error('Profil yüklenemedi:', e.message); 
   }
 }
 
