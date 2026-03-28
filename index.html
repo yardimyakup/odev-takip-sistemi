@@ -1102,61 +1102,86 @@ body.dark .hw-cell-btn { background: var(--bg); }
      LOGIN SCREEN
 ══════════════════════════════════════ -->
 <div id="screen-login" class="screen">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="login-badge" style="background: transparent; box-shadow: none;">
+  <div class="login-card" style="padding: 28px 24px 24px; max-height: 90vh; overflow-y: auto;">
+    <div class="login-logo" style="margin-bottom: 16px;">
+      <div class="login-badge" style="width:60px; height:60px; margin:0 auto 10px; background: transparent; box-shadow: none;">
         <img src="./logo1.png" alt="Vefa Poyraz Lisesi" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(224,32,32,0.3));">
       </div>
-      <div class="login-title">Vefa Poyraz A.L.</div>
-      <div class="login-subtitle">Ödev Takip Sistemi</div>
+      <div class="login-title" style="font-size:16px;">Vefa Poyraz A.L.</div>
+      <div class="login-subtitle" style="font-size:11px;">Ödev Takip Sistemi</div>
     </div>
-    <div class="login-divider"></div>
-    <div class="auth-tabs">
+    
+    <div class="auth-tabs" style="margin-bottom: 18px;">
       <button class="auth-tab active" id="tab-giris" onclick="switchTab('giris')">Giriş Yap</button>
       <button class="auth-tab" id="tab-kayit" onclick="switchTab('kayit')">Kayıt Ol</button>
     </div>
+    
     <div id="form-giris">
-      <label class="f-label">Ad Soyad</label>
-      <input class="f-input" id="li-name" type="text" placeholder="Adınızı ve soyadınızı girin" autocomplete="name">
-      <label class="f-label">Şifre</label>
-      <div class="f-input-wrap">
-        <input class="f-input" id="li-pass" type="password" placeholder="Şifreniz" autocomplete="current-password">
-        <button class="eye-btn" onclick="toggleEye('li-pass',this)" type="button">👁</button>
+      <div style="margin-bottom: 14px;">
+        <label class="f-label">Ad Soyad</label>
+        <input class="f-input" id="li-name" type="text" placeholder="Adınızı ve soyadınızı girin" autocomplete="name" style="margin-bottom: 0;">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="f-label">Şifre</label>
+        <div class="f-input-wrap" style="margin-bottom: 0;">
+          <input class="f-input" id="li-pass" type="password" placeholder="Şifreniz" autocomplete="current-password" style="margin-bottom: 0;">
+          <button class="eye-btn" onclick="toggleEye('li-pass',this)" type="button">👁</button>
+        </div>
       </div>
       <button class="btn-login" id="btn-giris" onclick="doLogin()">Giriş Yap →</button>
     </div>
+    
     <div id="form-kayit" style="display:none;">
-      <div class="f-row">
+      
+      <div class="f-row" style="margin-bottom: 14px;">
         <div>
           <label class="f-label">Ad</label>
-          <input class="f-input" id="reg-ad" type="text" placeholder="Adınız">
+          <input class="f-input" id="reg-ad" type="text" placeholder="Adınız" style="margin-bottom: 0;">
         </div>
         <div>
           <label class="f-label">Soyad</label>
-          <input class="f-input" id="reg-soyad" type="text" placeholder="Soyadınız">
+          <input class="f-input" id="reg-soyad" type="text" placeholder="Soyadınız" style="margin-bottom: 0;">
         </div>
       </div>
-      <label class="f-label">Branş</label>
-      <select class="f-select" id="reg-brans">
-        <option value="Diger">Diğer Branşlar</option>
-        <option value="Edebiyat">Türk Dili ve Edebiyatı</option>
-        <option value="Ingilizce">İngilizce</option>
-        <option value="Fransizca">Fransızca</option>
-      </select>
-      <div class="branch-hint">💡 Dil branşı değilseniz "Diğer Branşlar" seçili kalsın</div>
-      <label class="f-label">Şifre</label>
-      <div class="f-input-wrap">
-        <input class="f-input" id="reg-pass" type="password" placeholder="En az 4 karakter">
-        <button class="eye-btn" onclick="toggleEye('reg-pass',this)" type="button">👁</button>
+      
+      <div style="margin-bottom: 14px;">
+        <label class="f-label">E-posta Adresi</label>
+        <input class="f-input" id="reg-email" type="email" placeholder="ornek@gmail.com" style="margin-bottom: 4px;">
+        <div class="branch-hint" style="margin-bottom: 0;">💡 Doğrulama kodu bu adrese gönderilecektir</div>
       </div>
-      <label class="f-label">Şifre Tekrar</label>
-      <div class="f-input-wrap">
-        <input class="f-input" id="reg-pass2" type="password" placeholder="Şifreyi tekrar girin">
-        <button class="eye-btn" onclick="toggleEye('reg-pass2',this)" type="button">👁</button>
+      
+      <div style="margin-bottom: 14px;">
+        <label class="f-label">Branş</label>
+        <select class="f-select" id="reg-brans" style="margin-bottom: 4px;">
+          <option value="Diger">Diğer Branşlar</option>
+          <option value="Edebiyat">Türk Dili ve Edebiyatı</option>
+          <option value="Ingilizce">İngilizce</option>
+          <option value="Fransizca">Fransızca</option>
+        </select>
+        <div class="branch-hint" style="margin-bottom: 0;">💡 Dil branşı değilseniz "Diğer" seçili kalsın</div>
       </div>
+      
+      <div class="f-row" style="margin-bottom: 20px;">
+        <div>
+          <label class="f-label">Şifre</label>
+          <div class="f-input-wrap" style="margin-bottom: 0;">
+            <input class="f-input" id="reg-pass" type="password" placeholder="En az 4" style="margin-bottom: 0;">
+            <button class="eye-btn" onclick="toggleEye('reg-pass',this)" type="button">👁</button>
+          </div>
+        </div>
+        <div>
+          <label class="f-label">Tekrar</label>
+          <div class="f-input-wrap" style="margin-bottom: 0;">
+            <input class="f-input" id="reg-pass2" type="password" placeholder="Tekrar" style="margin-bottom: 0;">
+            <button class="eye-btn" onclick="toggleEye('reg-pass2',this)" type="button">👁</button>
+          </div>
+        </div>
+      </div>
+      
       <button class="btn-login" id="btn-kayit" onclick="doRegister()">Kayıt Ol →</button>
     </div>
-    <div class="login-err" id="login-err"></div>
+    
+    <div class="login-err" id="login-err" style="margin-top: 10px; min-height: 18px;"></div>
   </div>
 </div>
 
@@ -1791,7 +1816,6 @@ function checkRehberDurum() {
       <div class="sheet-title">Sınıf İşlemleri</div>
       <button class="sheet-close" onclick="closeOverlay('overlay-class-menu')">✕</button>
     </div>
-
     <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openHomeworkScreen();">
       <div class="dl-icon" style="background:#e0f2fe;color:#0284c7;">📚</div>
       <div class="dl-text">
@@ -1799,39 +1823,6 @@ function checkRehberDurum() {
         <div class="dl-sub">Ödev verin ve kontrol edin</div>
       </div>
     </div>
-
-    <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openSeatingPlan();">
-      <div class="dl-icon" style="background:#fef3c7;color:#d97706;">🪑</div>
-      <div class="dl-text">
-        <div class="dl-title">Oturma Planı</div>
-        <div class="dl-sub">Sınıf yerleşimini düzenleyin</div>
-      </div>
-    </div>
-
-    <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openAnalytics();">
-      <div class="dl-icon" style="background:#ecfdf5;color:#059669;">📊</div>
-      <div class="dl-text">
-        <div class="dl-title">Sınıf Analizi</div>
-        <div class="dl-sub">Başarı ve risk raporları</div>
-      </div>
-    </div>
-
-    <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openStudentEdit();">
-      <div class="dl-icon" style="background:var(--gray-100);color:var(--gray-700);">⚙️</div>
-      <div class="dl-text">
-        <div class="dl-title">Listeyi Düzenle</div>
-        <div class="dl-sub">Sınıfa öğrenci ekle veya sil</div>
-      </div>
-    </div>
-
-    <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openOverlay('overlay-download');">
-      <div class="dl-icon" style="background:#ede9fe;color:#7c3aed;">📥</div>
-      <div class="dl-text">
-        <div class="dl-title">İndir / Paylaş</div>
-        <div class="dl-sub">Excel, PDF veya TXT olarak kaydet</div>
-      </div>
-    </div>
-
     <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openPerfScaleScreen();">
       <div class="dl-icon" style="background:#fef9c3;color:#ca8a04;">📝</div>
       <div class="dl-text">
@@ -1839,7 +1830,34 @@ function checkRehberDurum() {
         <div class="dl-sub">Otomatik puan dağılımlı resmi ölçek</div>
       </div>
     </div>
-    
+    <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openSeatingPlan();">
+      <div class="dl-icon" style="background:#fef3c7;color:#d97706;">🪑</div>
+      <div class="dl-text">
+        <div class="dl-title">Oturma Planı</div>
+        <div class="dl-sub">Sınıf yerleşimini düzenleyin</div>
+      </div>
+    </div>
+    <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openAnalytics();">
+      <div class="dl-icon" style="background:#ecfdf5;color:#059669;">📊</div>
+      <div class="dl-text">
+        <div class="dl-title">Sınıf Analizi</div>
+        <div class="dl-sub">Başarı ve risk raporları</div>
+      </div>
+    </div>
+    <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openStudentEdit();">
+      <div class="dl-icon" style="background:var(--gray-100);color:var(--gray-700);">⚙️</div>
+      <div class="dl-text">
+        <div class="dl-title">Listeyi Düzenle</div>
+        <div class="dl-sub">Sınıfa öğrenci ekle veya sil</div>
+      </div>
+    </div>
+    <div class="dl-option" onclick="closeOverlay('overlay-class-menu'); openOverlay('overlay-download');">
+      <div class="dl-icon" style="background:#ede9fe;color:#7c3aed;">📥</div>
+      <div class="dl-text">
+        <div class="dl-title">İndir / Paylaş</div>
+        <div class="dl-sub">Excel, PDF veya TXT olarak kaydet</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2018,6 +2036,21 @@ function checkRehberDurum() {
   </div>
 </div>
 
+<div class="overlay center" id="overlay-verify-email">
+  <div class="sheet centered" style="max-width:340px;">
+    <div style="font-size:46px;margin-bottom:12px;">✉️</div>
+    <div class="sheet-title" style="justify-content:center;display:flex;margin-bottom:8px;">Doğrulama Kodu</div>
+    <div style="font-size:12.5px;color:var(--text-soft);font-weight:600;margin-bottom:16px;line-height:1.5;">
+      Lütfen <b id="verify-email-display" style="color:var(--text);"></b> adresine gönderdiğimiz 6 haneli kodu girin.
+    </div>
+    <input class="f-input" id="reg-code" type="number" placeholder="000000" style="font-size:24px; font-weight:900; letter-spacing:6px; text-align:center; padding:15px; font-family:var(--font-mono);">
+    <div class="sheet-actions" style="margin-top:10px;">
+      <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-verify-email')">İptal</button>
+      <button class="btn-full btn-full-red" id="btn-verify" onclick="confirmRegistration()">Onayla & Kaydol</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════ -->
@@ -2027,7 +2060,7 @@ function checkRehberDurum() {
 // ════════════════════════════════
 // SABITLER
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbz3SR4Y7rYvLtK3ilvkYTKrtUttednE39xmBIcHKZzzvw5nbpDJ1CzsDkvPUmUrGsj7/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwUsoXRF1qvBNEtkUb6Ao4xczwU65_TrE1WGdw4BHAbtOyQ4nYCFTGgArhu1e_xTQCw/exec";
 const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
 const BRANCH_LABELS = { Edebiyat: 'T\u00fcrk Dili ve Edebiyat\u0131', Ingilizce: '\u0130ngilizce', Fransizca: 'Frans\u0131zca' };
 const STORAGE_KEY = 'vpAL3';
@@ -2276,35 +2309,112 @@ async function doLogin() {
   btn.disabled = false;
 }
 
+// ════════════════════════════════
+// YENİ: 2 AŞAMALI KAYIT SİSTEMİ (E-POSTA DOĞRULAMALI)
+// ════════════════════════════════
+
+// Bu fonksiyon sadece mail gönderir ve pop-up açar
 async function doRegister() {
   var first  = document.getElementById('reg-ad').value.trim();
   var last   = document.getElementById('reg-soyad').value.trim();
+  var email  = document.getElementById('reg-email').value.trim();
   var pass   = document.getElementById('reg-pass').value.trim();
   var pass2  = document.getElementById('reg-pass2').value.trim();
   var branch = document.getElementById('reg-brans').value;
-  if (!first || !last) { setErr('Ad ve soyad zorunludur.'); return; }
-  if (pass.length < 4)  { setErr('\u015eifre en az 4 karakter olmal\u0131d\u0131r.'); return; }
-  if (pass !== pass2)   { setErr('\u015eifreler e\u015fle\u015fmiyor.'); return; }
-  var fullName = first + ' ' + last;
+  
+  if (!first || !last || !email) { setErr('Ad, soyad ve e-posta zorunludur.'); return; }
+  if (pass.length < 4)  { setErr('Şifre en az 4 karakter olmalıdır.'); return; }
+  if (pass !== pass2)   { setErr('Şifreler eşleşmiyor.'); return; }
+  
   var btn = document.getElementById('btn-kayit');
-  btn.textContent = 'Kaydediliyor...'; btn.disabled = true; setErr('');
+  btn.textContent = 'Kod Gönderiliyor...'; 
+  btn.disabled = true; 
+  setErr('');
+  
+  try {
+    // Önce sunucudan sadece E-Posta göndermesini istiyoruz
+    var response = await fetch(API_URL, {
+      method: 'POST', mode: 'cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'sendOtp', email: email })
+    });
+    
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var result = await response.json();
+    
+    if (result.success) {
+      // Mail başarıyla gitti, pop-up ekranını aç
+      document.getElementById('verify-email-display').textContent = email;
+      document.getElementById('reg-code').value = ''; // Kutuyu temizle
+      openOverlay('overlay-verify-email');
+      notify('Doğrulama kodu gönderildi! Lütfen e-postanızı kontrol edin.', 'info', 4000);
+    } else { 
+      setErr('Hata: ' + result.msg); 
+    }
+  } catch (e) { 
+    setErr('Sunucuya bağlanılamıyor! İnternet bağlantınızı kontrol edin.'); 
+  }
+  
+  btn.textContent = 'Kayıt Ol →'; 
+  btn.disabled = false;
+}
+
+// Öğretmen kodu girip "Onayla" dediğinde bu çalışır ve asıl kaydı yapar
+async function confirmRegistration() {
+  var first  = document.getElementById('reg-ad').value.trim();
+  var last   = document.getElementById('reg-soyad').value.trim();
+  var email  = document.getElementById('reg-email').value.trim();
+  var pass   = document.getElementById('reg-pass').value.trim();
+  var branch = document.getElementById('reg-brans').value;
+  var otpCode = document.getElementById('reg-code').value.trim();
+  
+  if (!otpCode || otpCode.length < 6) {
+    notify('Lütfen 6 haneli kodu eksiksiz girin.', 'error');
+    return;
+  }
+  
+  var btn = document.getElementById('btn-verify');
+  btn.textContent = 'Doğrulanıyor...'; 
+  btn.disabled = true;
+  
+  var fullName = first + ' ' + last;
+  
   try {
     var response = await fetch(API_URL, {
       method: 'POST', mode: 'cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'registerUser', fullName: fullName, pass: pass, branch: branch })
+      body: JSON.stringify({ 
+        action: 'registerUser', 
+        fullName: fullName, 
+        pass: pass, 
+        branch: branch,
+        email: email,
+        otp: otpCode // Kullanıcının girdiği kodu da yolluyoruz
+      })
     });
+    
     if (!response.ok) throw new Error('HTTP ' + response.status);
     var resultText = await response.text();
-    if (resultText.includes('Ba\u015far\u0131l\u0131') || resultText.includes('Basarili')) {
-      state.teacher = fullName; state.branch = branch;
-      localStorage.setItem(STORAGE_KEY + '_teacher', state.teacher);
-      localStorage.setItem(STORAGE_KEY + '_branch',  state.branch);
-      state.classes = []; state.homeworks = {}; state.statuses = {}; state.notes = {}; state.multScores = {};
-      persist(); notify('Kay\u0131t ba\u015far\u0131l\u0131! Ho\u015f geldiniz \uD83C\uDF89', 'success'); showDashboard();
-    } else { setErr('Hata: ' + resultText); }
-  } catch (e) { setErr('Sunucuya ba\u011flan\u0131lam\u0131yor! \u0130nternet ba\u011flant\u0131n\u0131z\u0131 kontrol edin.'); }
-  btn.textContent = 'Kay\u0131t Ol \u2192'; btn.disabled = false;
+    
+    if (resultText.includes('Başarılı') || resultText.includes('Basarili')) {
+      // Kayıt başarılı oldu, pop-up'ı kapat ve OTOMATİK GİRİŞ YAP
+      closeOverlay('overlay-verify-email');
+      notify('Kayıt başarılı! Giriş yapılıyor... 🎉', 'success');
+      
+      // Token hatasını engellemek için direkt doLogin sistemini tetikliyoruz
+      document.getElementById('li-name').value = fullName;
+      document.getElementById('li-pass').value = pass;
+      setTimeout(doLogin, 1000); // 1 saniye sonra otomatik giriş yapar
+      
+    } else { 
+      notify(resultText, 'error', 4000); // Kodu yanlış girdiyse uyarır
+    }
+  } catch (e) { 
+    notify('Sunucuya bağlanılamıyor!', 'error'); 
+  }
+  
+  btn.textContent = 'Onayla & Kaydol'; 
+  btn.disabled = false;
 }
 
 function openLogout() { openOverlay('overlay-logout'); }
@@ -4290,7 +4400,6 @@ function distributePerfScore(totalScore, criteriaList) {
   return result;
 }
 
-// 🖨️ PDF YAZDIRMA 
 function printPerfScalePDF() {
   var dersAdi = document.getElementById('perf-ders-adi').value.trim();
   if (!dersAdi) {
@@ -4299,7 +4408,7 @@ function printPerfScalePDF() {
     return;
   }
 
-  // YENİ EKLENEN KISIM: Ders adını Türkçe kurallarına göre ilk harfleri büyük olacak şekilde düzeltir
+  // Ders adını Türkçe kurallarına göre ilk harfleri büyük olacak şekilde düzeltir
   dersAdi = dersAdi.split(' ').map(function(kelime) {
     if (!kelime) return '';
     return kelime.charAt(0).toLocaleUpperCase('tr-TR') + kelime.slice(1).toLocaleLowerCase('tr-TR');
@@ -4314,50 +4423,67 @@ function printPerfScalePDF() {
 
   // 1. Performans ve 2. Performans başlık farkları
   var subTitleText = state.activePerfIndex === 1 
-                     ? "1. PERFORMANS DEĞERLENDİRME ÖLÇEĞİ" 
-                     : "2. DERS İÇİ PERFORMANS DEĞERLENDİRME ÖLÇEĞİ";
+                       ? "1. PERFORMANS DEĞERLENDİRME ÖLÇEĞİ" 
+                       : "2. DERS İÇİ PERFORMANS DEĞERLENDİRME ÖLÇEĞİ";
 
   var html = ['<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + docTitle + '</title>',
     '<meta name="viewport" content="width=device-width,initial-scale=1.0"><style>',
-    'body { font-family: "Segoe UI", Arial, sans-serif; padding: 10px; color: #000; background: #fff; font-size:11px; margin: 0 auto; max-width: 290mm; }',
-    '@media print { .no-print { display: none !important; } body { padding: 0; } @page { size: A4 landscape; margin: 8mm; } }',
-    '.pb { background: #e02020; color: #fff; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 8px; margin-bottom: 15px; display: block; width: 100%; text-align: center; }',
-    '.head-title { text-align: center; font-size: 14px; font-weight: normal; margin-bottom: 5px; }',
-    '.sub-title { text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 20px; text-decoration: underline; text-transform: uppercase; }',
-    '.info-table { width: 100%; border: none; margin-bottom: 15px; font-size:11px; }',
-    '.info-table td { padding: 3px; vertical-align: top; }',
-    '.main-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 30px; }',
-    '.main-table th, .main-table td { border: 1.5px solid #000; padding: 4px; text-align: center; vertical-align: middle; }',
-    '.main-table th { font-weight: normal; }',
-    '.vert-text { writing-mode: vertical-rl; transform: rotate(180deg); height: 165px; max-width: 45px; text-align: left; padding: 10px 5px; font-size: 10px; line-height: 1.2; margin: 0 auto; }',
-    '.signs { width: 100%; display: flex; justify-content: space-between; text-align: center; font-size: 12px; margin-top: 20px; padding: 0 40px; }',
+    
+    /* 1 SAYFAYA ZORLAMA VE BOŞLUK KONTROLÜ */
+    'html, body { width: 100%; height: 100%; margin: 0; padding: 0; box-sizing: border-box; background: #fff; font-family: "Segoe UI", Arial, sans-serif; color: #000; overflow: hidden; }',
+    
+    /* Kağıdın tamamını kullan, taşmayı engelle */
+    '@media print { .no-print { display: none !important; } body { padding: 4mm 8mm; height: 99vh; overflow: hidden; } @page { size: A4 portrait; margin: 0; } }',
+    
+    '.pb { background: #e02020; color: #fff; border: none; padding: 8px 15px; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 8px; margin: 5px auto 10px; display: block; width: 90%; text-align: center; }',
+    
+    /* Başlık boyutları */
+    '.head-title { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 2px; line-height: 1.2; }',
+    '.sub-title { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 4px; text-decoration: underline; text-transform: uppercase; line-height: 1.2; }',
+    
+    /* Üst Bilgi Tablosu (Ders, Şube vb.) */
+    '.info-table { width: 100%; border: none; margin-bottom: 4px; font-size: 10.5px; font-weight: 600; line-height: 1.2; }',
+    '.info-table td { padding: 0; vertical-align: bottom; }',
+    
+    /* LİSTE TABLOSU: Satır yükseklikleri (height) 13.8px yapılarak o alttaki boşluğa doğru ferahlatıldı */
+    '.main-table { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 3px; }',
+    '.main-table th, .main-table td { border: 1px solid #000; padding: 2px; text-align: center; vertical-align: middle; height: 13.8px; }',
+    
+    /* Dikey Metin */
+    '.vert-text { writing-mode: vertical-rl; transform: rotate(180deg); height: 105px; max-height: 105px; text-align: left; padding: 2px; font-size: 8px; line-height: 1; margin: 0 auto; overflow: hidden; }',
+    
+    /* İMZALAR: Absolute konumlandırma ile kağıdın en altına çivilendi. */
+    '.signs-wrapper { position: relative; width: 100%; margin-top: 5px; }',
+    '.signs { width: 100%; display: flex; justify-content: space-between; text-align: center; font-size: 11px; padding: 0 40px; font-weight: bold; box-sizing: border-box; line-height: 1.2; }',
     '</style></head><body>',
+    
     '<div class="no-print"><button class="pb" onclick="window.print()">📄 PDF OLARAK KAYDET / YAZDIR</button></div>',
     '<div class="head-title">2025-2026 EĞİTİM ÖĞRETİM YILI VEFA POYRAZ ANADOLU LİSESİ</div>',
     '<div class="sub-title">' + subTitleText + '</div>',
     
     '<table class="info-table"><tr>',
     '<td style="width: 50%;">',
-    'Ders: ' + clearTr(dersAdi) + '<br><br>',
-    'Şube: ' + state.currentClass.name + '<br><br>',
-    'Tarih: ' + today() + '<br><br>',
+    'Ders: ' + clearTr(dersAdi) + '<br>',
+    'Şube: ' + state.currentClass.name + '<br>',
+    'Tarih: ' + today() + '<br>',
     'Öğretmen: ' + teacherName,
-    '</td><td style="width: 50%; text-align:right; line-height:1.8;">',
-    '(0-49,99): Geçmez &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (60-69,99) Orta<br>',
-    '(50-59,99): Geçer &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (70-84,99) İyi<br>',
-    '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (85-100): Pekiyi',
+    '</td><td style="width: 50%; text-align:right; font-size: 9px; line-height: 1.1; font-weight: normal;">',
+    '(0-49,99): Geçmez &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (60-69,99): Orta<br>',
+    '(50-59,99): Geçer &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (70-84,99): İyi<br>',
+    '(85-100): Pekiyi',
     '</td></tr></table>',
 
     '<table class="main-table"><thead><tr>',
-    '<th style="width:2%;">SN</th>',
-    '<th style="width:4%;">No</th>',
-    '<th style="width:20%;">Adı Soyadı</th>'
+    '<th style="width:3%;">SN</th>',
+    '<th style="width:5%;">No</th>',
+    '<th style="width:25%;">Adı Soyadı</th>'
   ];
 
   criteria.forEach(function(c) {
     html.push('<th><div class="vert-text">' + clearTr(c.text) + '</div></th>');
   });
-  html.push('<th><div class="vert-text" style="height:auto;">Toplam Puan</div></th></tr></thead><tbody>');
+  
+  html.push('<th><div class="vert-text" style="height:auto; max-height:none; font-weight:bold; font-size: 9px; text-align: center;">Toplam<br>Puan</div></th></tr></thead><tbody>');
 
   state.students.forEach(function(stu, index) {
     var val = scores[stu.no] !== undefined ? scores[stu.no] : '';
@@ -4366,22 +4492,23 @@ function printPerfScalePDF() {
     html.push('<tr>');
     html.push('<td>' + (index + 1) + '</td>');
     html.push('<td>' + stu.no + '</td>');
-    html.push('<td style="text-align:left; font-weight:bold; font-size:10.5px;">' + clearTr(stu.ad + ' ' + stu.soyad) + '</td>');
+    html.push('<td style="text-align:left; font-weight:bold; padding-left:4px; font-size: 10px;">' + clearTr(stu.ad + ' ' + stu.soyad) + '</td>');
     
     dist.forEach(function(d) {
       html.push('<td>' + d + '</td>');
     });
     
-    html.push('<td style="font-weight:bold;">' + val + '</td>');
+    html.push('<td style="font-weight:bold; font-size: 11px;">' + val + '</td>');
     html.push('</tr>');
   });
 
   html.push('</tbody></table>');
 
-  html.push('<div class="signs">');
-  html.push('<div><br><br>' + clearTr(teacherName) + '<br>Ders Öğretmeni</div>');
-  html.push('<div>Uygundur<br><br>Hüseyin BOYRAZ<br>Okul Müdürü</div>');
-  html.push('</div>');
+  /* İmzaları tutan div */
+  html.push('<div class="signs-wrapper"><div class="signs">');
+  html.push('<div>' + clearTr(teacherName) + '<div style="height:15px;"></div>Ders Öğretmeni</div>');
+  html.push('<div>Uygundur<div style="height:15px;"></div>Hüseyin BOYRAZ<br>Okul Müdürü</div>');
+  html.push('</div></div>');
 
   html.push('</body></html>');
 
@@ -4391,7 +4518,6 @@ function printPerfScalePDF() {
   win.document.close();
   setTimeout(function() { win.document.title = docTitle; }, 100);
 }
-
 
 // PERFORMANS NOTLARINI GOOGLE SHEETS'E GÖNDER
 async function savePerfToCloud() {
