@@ -1907,20 +1907,22 @@ function checkRehberDurum() {
 </div>
 
 <div id="screen-homework" class="screen">
-<div class="topbar">
-  <button class="back-btn" onclick="closeHomeworkScreen()">←</button>
-  <div style="flex:1;margin:0 10px;">
-    <div class="topbar-title" id="hw-title">Ödev Takibi</div>
-    <div class="topbar-sub" id="hw-sub"></div>
+  <div class="topbar">
+    <button class="back-btn" onclick="closeHomeworkScreen()">←</button>
+    <div style="flex:1;margin:0 10px;">
+      <div class="topbar-title" id="hw-title">Ödev Takibi</div>
+      <div class="topbar-sub" id="hw-sub"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <button class="btn-sm btn-ghost" onclick="addNewHomework()" style="padding: 6px 8px; font-size: 11px;">➕ Ekle</button>
+      
+      <button class="btn-sm" style="background:#0284c7; color:white; border:none; padding: 6px 8px; font-size: 11px;" onclick="saveHomeworkToCloud()" id="btn-save-hw">☁️ Kaydet</button>
+      
+      <button class="btn-sm" style="background:#f59e0b; color:white; border:none; padding: 6px 8px; font-size: 11px;" onclick="downloadHomeworkPDF(true)">📄 Sıkıştır</button>
+
+      <button class="btn-sm btn-red" onclick="downloadHomeworkPDF(false)" style="padding: 6px 8px; font-size: 11px;">📄 Normal</button>
+    </div>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;">
-    <button class="btn-sm btn-ghost" onclick="addNewHomework()">➕ Ödev Ekle</button>
-    
-    <button class="btn-sm" style="background:#0284c7; color:white; border:none;" onclick="saveHomeworkToCloud()" id="btn-save-hw">☁️ Buluta Kaydet</button>
-    
-    <button class="btn-sm btn-red" onclick="downloadHomeworkPDF()">📄 PDF İndir</button>
-  </div>
-</div>
 
   <div class="page-scroll" style="background: var(--bg);">
     <div style="padding: 14px 14px 0; font-size: 11px; color: var(--gray-500); font-weight: 600;">
@@ -1928,7 +1930,7 @@ function checkRehberDurum() {
     </div>
     <div class="hw-table-container">
       <table class="hw-table" id="hw-main-table">
-        </table>
+      </table>
     </div>
   </div>
 </div>
@@ -2048,7 +2050,7 @@ function checkRehberDurum() {
       <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-verify-email')">İptal</button>
       <button class="btn-full btn-full-red" id="btn-verify" onclick="confirmRegistration()">Onayla & Kaydol</button>
     </div>
-  </div>
+  </div> 
 </div>
 
 <!-- ══════════════════════════════════════
@@ -2060,7 +2062,7 @@ function checkRehberDurum() {
 // ════════════════════════════════
 // SABITLER
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbwUsoXRF1qvBNEtkUb6Ao4xczwU65_TrE1WGdw4BHAbtOyQ4nYCFTGgArhu1e_xTQCw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyHUknQzuyzSH7GjwnB43Ew68Fsy4_4ttILcHbDIVZEiQ02g7M9TgilHEUrudHg6-ck/exec";
 const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
 const BRANCH_LABELS = { Edebiyat: 'T\u00fcrk Dili ve Edebiyat\u0131', Ingilizce: '\u0130ngilizce', Fransizca: 'Frans\u0131zca' };
 const STORAGE_KEY = 'vpAL3';
@@ -2281,18 +2283,25 @@ async function doLogin() {
   setErr('');
   
   try {
-    var url = API_URL + '?action=login&user=' + encodeURIComponent(name) + '&pass=' + encodeURIComponent(pass);
-    var resp = await fetch(url);
+    // Şifreyi URL'de taşımak yerine POST body'si içinde güvenle gönderiyoruz
+    var payload = { action: 'login', user: name, pass: pass };
+    var resp = await fetch(API_URL, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    
     var result = await resp.json();
     
     if (result.success) {
       state.teacher = result.fullName; 
       state.branch = result.branch || 'Diger';
-      state.token = result.token; // 🌟 YENİ GÜVENLİK ANAHTARI (TOKEN) 🌟
+      state.token = result.token; 
       
       localStorage.setItem(STORAGE_KEY + '_teacher', state.teacher);
       localStorage.setItem(STORAGE_KEY + '_branch',  state.branch);
-      localStorage.setItem(STORAGE_KEY + '_token',   state.token); // 🌟 TOKEN'I TELEFONA KAYDET 🌟
+      localStorage.setItem(STORAGE_KEY + '_token',   state.token); 
       
       hydrate(); 
       await loadTeacherProfile(state.teacher);
@@ -3462,27 +3471,38 @@ function renderSeatingRows() {
   var planKey = state.currentClass.id;
   var plan = state.seatingPlans[planKey] || {};
   
-  var columnsCount = 4; // 4. Sıra, 3. Sıra, 2. Sıra, 1. Sıra
-  var seatsPerPair = 2;
-  var depth = Math.ceil(state.students.length / 8);
+  // SINIF MEVCUDUNA GÖRE DİNAMİK MASA HESAPLAMA
+  var totalStudents = state.students.length || 1;
+  var columnsCount = 4; // Varsayılan olarak 4 sütun (8'li sıra) yapıyoruz
+  var seatsPerPair = 2; // Her sırada 2 öğrenci oturuyor
+  
+  // Eğer sınıf 40 kişiden fazlaysa 5 sütun (10'lu sıra) yapabiliriz, aksi halde 4 sütun kalır
+  // (İhtiyaca göre bu mantık değiştirilebilir, şu an 4 sütunu standart tuttuk)
+  if (totalStudents > 48) {
+      columnsCount = 5; 
+  }
+  
+  // Sınıf mevcuduna göre kaç sıra arka arkaya dizilecek hesapla
+  var totalSeatsPerRow = columnsCount * seatsPerPair;
+  var depth = Math.ceil(totalStudents / totalSeatsPerRow);
   if (depth < 1) depth = 1;
 
   var html = '<div style="display: flex; gap: 14px; justify-content: center; min-width: max-content; padding-bottom: 20px; overflow-x: auto;">';
 
-  // Sütunları Çiz (Soldan Sağa: 4, 3, 2, 1)
+  // Sütunları Çiz
   for (var c = columnsCount; c >= 1; c--) {
     html += '<div style="display: flex; flex-direction: column; gap: 10px; width: 145px;">';
     
-    // ÖĞRETMEN MASASI: Sadece 1. SIRA'nın üstünde, yatay bir dikdörtgen
+    // ÖĞRETMEN MASASI: Sadece 1. SIRA'nın üstünde
     if (c === 1) {
         html += '<div style="background: linear-gradient(135deg, var(--gray-700) 0%, #2d3748 100%); color: #fff; text-align: center; padding: 14px 10px; border-radius: 12px; font-size: 12px; font-weight: 900; letter-spacing: 1px; box-shadow: var(--shadow-sm); margin-bottom: 6px;">👨‍🏫 ÖĞRETMEN</div>';
     } else {
-        // Hizalamayı korumak için görünmez boşluk
         html += '<div style="height: 44px; margin-bottom: 6px;"></div>';
     }
     
     html += '<div style="text-align: center; font-size: 13px; font-weight: 900; color: var(--gray-500);">' + c + '. SIRA</div>';
     
+    // Sıraları (Derinlik) Çiz
     for (var r = 0; r < depth; r++) {
       html += '<div class="desk-pair" style="display: flex; background: var(--card); border: 2px solid var(--border); border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); min-height: 75px; overflow: hidden;">';
       
@@ -3702,7 +3722,7 @@ function getLogoBase64(callback) {
 /* ════════════════════════════════════════════════════════
      PREMIUM PDF OLUŞTURMA FONKSİYONU
   ════════════════════════════════════════════════════════ */
-  function generatePremiumPDF(logoData) {
+ function generatePremiumPDF(logoData) {
     var jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : jspdf.jsPDF;
     var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
@@ -3719,15 +3739,21 @@ function getLogoBase64(callback) {
     var PW = 297, PH = 210;
     var MX = 16, MY = 8; 
     var HEADER_H = 26; 
+    var GRID_TOP = MY + HEADER_H + 26; 
+    var AVAILABLE_H = PH - GRID_TOP - 16; 
     
-    // YENİ AYARLAR BURADA BAŞLIYOR
-    var GRID_TOP = MY + HEADER_H + 26; // 20'ydi 26 yapıldı: Tüm planı biraz daha aşağı aldık
-    var AVAILABLE_H = PH - GRID_TOP - 16; // 6'ydı 16 yapıldı: En alttan bırakılan boşluğu artırdık
-    
+    // YENİ: DİNAMİK MASA HESABI (Ekranda ne kadar masa varsa o kadar çizilir)
+    var totalStudents = state.students.length || 1;
     var COLS = 4;
-    var COL_GAP = 12; // Sütunlar arası yatay boşluk (bunu da istersen 14 yapabilirsin)
-    var depth = Math.max(1, Math.ceil(state.students.length / 8));
-    var ROW_GAP = 10; // 7'ydi 10 yapıldı: Satır arası boşluk arttı, kutular biraz küçüldü
+    var seatsPerPair = 2;
+    if (totalStudents > 48) COLS = 5; 
+    
+    var totalSeatsPerRow = COLS * seatsPerPair;
+    var depth = Math.ceil(totalStudents / totalSeatsPerRow);
+    if (depth < 1) depth = 1;
+
+    var COL_GAP = 12; 
+    var ROW_GAP = 10; 
     var ROW_H = Math.min(26, (AVAILABLE_H - ROW_GAP * (depth - 1)) / depth);
     var COL_W = (PW - (MX * 2) - (COL_GAP * (COLS - 1))) / COLS;
     var SEAT_W = COL_W / 2;
@@ -3747,11 +3773,8 @@ function getLogoBase64(callback) {
     doc.roundedRect(logoX, logoY, logoSize, logoSize, 3, 3, 'F');
     
     if (logoData && logoData.length > 50) {
-      try { 
-        doc.addImage(logoData, 'PNG', logoX + 1.5, logoY + 1.5, logoSize - 3, logoSize - 3); 
-      } catch (e) {
-        console.warn("Base64 Logo eklenirken hata oluştu.");
-      }
+      try { doc.addImage(logoData, 'PNG', logoX + 1.5, logoY + 1.5, logoSize - 3, logoSize - 3); } 
+      catch (e) { console.warn("Base64 Logo eklenirken hata oluştu."); }
     }
     
     var textStartX = MX + logoSize + 10;
@@ -3793,8 +3816,7 @@ function getLogoBase64(callback) {
     doc.text(tName, infoBoxX + 26, infoBoxY + 16.5);
 
     var TEACHER_H = 12; 
-    var col1X = MX + 3 * (COL_W + COL_GAP); 
-    // Öğretmen masasını yazıdan biraz daha uzaklaştırdık
+    var col1X = MX + (COLS - 1) * (COL_W + COL_GAP); 
     var tDeskY = GRID_TOP - TEACHER_H - 7; 
 
     doc.setFillColor(COLOR.cardDrop[0], COLOR.cardDrop[1], COLOR.cardDrop[2]);
@@ -3808,6 +3830,9 @@ function getLogoBase64(callback) {
     doc.setFont('helvetica', 'bold');
     doc.text(clearTr('OGRETMEN MASASI'), col1X + COL_W / 2, tDeskY + 8, { align: 'center' });
 
+    var planKey = state.currentClass.id;
+    var plan    = state.seatingPlans[planKey] || {};
+
     for (var c = COLS; c >= 1; c--) {
       var colIdx = COLS - c;       
       var colX   = MX + colIdx * (COL_W + COL_GAP);
@@ -3815,7 +3840,6 @@ function getLogoBase64(callback) {
       doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(COLOR.slate400[0], COLOR.slate400[1], COLOR.slate400[2]);
-      // Sıra yazısını çizgiye çok az daha yaklaştırdık (masadan uzaklaşması için)
       doc.text(c + '. SIRA', colX + COL_W / 2, GRID_TOP - 3, { align: 'center' });
       
       doc.setDrawColor(226, 232, 240);
@@ -4048,7 +4072,9 @@ function toggleHwCell(stuNo, hwId) {
 
 /* KARELİ (IZGARALI) PDF YAZDIRMA */
 /* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
-function downloadHomeworkPDF() {
+/* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
+/* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
+function downloadHomeworkPDF(isCompact) {
   var clsId = state.currentClass.id;
   var hws = state.hwList[clsId] || [];
   var data = state.hwData[clsId] || {};
@@ -4058,102 +4084,123 @@ function downloadHomeworkPDF() {
     return;
   }
 
-  notify('Kareli Çizelge Hazırlanıyor... 📄', 'info', 2000);
+  if (hws.length === 0) {
+    notify('Ödev yok! Çizelge için önce ödev ekleyin.', 'error');
+    return;
+  }
+
+  notify(isCompact ? 'Tek Sayfaya Sıkıştırılmış PDF Hazırlanıyor... 📄' : 'Kareli Çizelge Hazırlanıyor... 📄', 'info', 2000);
 
   var jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : jspdf.jsPDF;
   var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); // YATAY A4
   
+  // Temel Sabitler ve Genişlikler
   var startY = 28;
-  var rowH = 8;
   var noW = 12;
-  var nameW = 55;
-  var colW = 12; 
+  var nameW = 50;
+  var availableWidth = 277 - noW - nameW; // A4 (297mm) - Sağ/Sol Boşluk(20mm)
   
-  // Bir sayfaya maksimum 17 ödev sütunu sığar
-  var maxColsPerPage = 17; 
-  var totalCols = Math.max(17, hws.length + (17 - (hws.length % 17))); 
-  if (hws.length % 17 === 0 && hws.length !== 0) totalCols = hws.length;
-  
-  var numChunks = Math.ceil(totalCols / maxColsPerPage);
-  var pageNum = 1;
+  // ÖDEV SÜTUNLARININ GENİŞLİĞİNİ DİNAMİK HESAPLA (Boşlukları ferahlat)
+  // Çok az ödev varsa (örn: 1-2), kutular devasa olmasın diye en az 6 sütuna bölüyormuş gibi yapalım
+  var displayHwCount = Math.max(hws.length, 6); 
+  var colW = availableWidth / displayHwCount;
 
-  for (var chunk = 0; chunk < numChunks; chunk++) {
-    if (chunk > 0) doc.addPage(); 
-    
-    var startCol = chunk * maxColsPerPage;
-    var endCol = Math.min(startCol + maxColsPerPage, totalCols);
-    
-    function drawPageHeader() {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        var title = clearTr(state.currentClass.name) + " - Odev Takip Cizelgesi";
-        if (numChunks > 1) title += " (Bolum " + (chunk + 1) + ")";
-        doc.text(title, 10, 15);
-        
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.text("Tarih: " + today() + "   Sayfa: " + pageNum, 10, 21);
-        
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.rect(10, startY, noW, rowH);
-        doc.text("No", 10 + noW/2, startY + 5, {align:'center'});
-        
-        doc.rect(10+noW, startY, nameW, rowH);
-        doc.text("Ad Soyad", 10+noW + 2, startY + 5);
-        
-        for(var i = startCol; i < endCol; i++) {
-          var x = 10 + noW + nameW + ((i - startCol) * colW);
-          doc.rect(x, startY, colW, rowH);
-          if(hws[i]) {
-            doc.setFontSize(6);
-            var shortName = clearTr(hws[i].name).substring(0, 8); 
-            doc.text(shortName, x + colW/2, startY + 5, {align:'center'});
-          }
-        }
-    }
+  var totalStudents = state.students.length || 1;
+  var rowH = 8; // Normal mod satır yüksekliği
+  var fSizeTitle = 14, fSizeSub = 9, fSizeHeader = 8, fSizeData = 8, fSizeVal = 10, hwLabelSize = 7;
 
-    drawPageHeader();
-    var currY = startY + rowH;
-    
-    state.students.forEach(function(stu) {
-      if(currY > 190) { // Sayfa aşağıya doğru dolduysa yeni sayfa aç
-        doc.addPage();
-        pageNum++;
-        drawPageHeader();
-        currY = startY + rowH;
-      }
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.rect(10, currY, noW, rowH);
-      doc.text(String(stu.no), 10 + noW/2, currY + 5, {align:'center'});
-      
-      doc.rect(10+noW, currY, nameW, rowH);
-      var fullName = clearTr(stu.ad + " " + stu.soyad);
-      if(fullName.length > 28) fullName = fullName.substring(0, 26) + '..';
-      doc.text(fullName, 10+noW + 2, currY + 5);
-      
-      for(var i = startCol; i < endCol; i++) {
-        var x = 10 + noW + nameW + ((i - startCol) * colW);
-        doc.rect(x, currY, colW, rowH); 
-        
-        if(hws[i]) {
-          var val = data[stu.no + '_' + hws[i].id] || '';
-          if(val) {
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text(val, x + colW/2, currY + 5.5, {align:'center'});
-          }
-        }
-      }
-      currY += rowH;
-    });
-    pageNum++;
+  if (isCompact) {
+    // YÜKSEKLİK SIKIŞTIRMA (Tüm öğrencileri dikeyde tek sayfaya sığdır)
+    var maxUsableHeight = 210 - 24 - 10; // 176mm kullanılabilir dikey alan
+    rowH = maxUsableHeight / (totalStudents + 1); // +1 başlık satırı için
+    if(rowH > 8) rowH = 8; // Sınıf mevcudu azsa satırlar devasa olmasın
+    startY = 24;
+
+    // Fontları satır yüksekliğine oranla küçült
+    fSizeTitle = 12; fSizeSub = 8;
+    fSizeHeader = Math.max(5, rowH * 1.1);
+    fSizeData = Math.max(5, rowH * 1.1);
+    fSizeVal = Math.max(6, rowH * 1.4);
   }
+
+  // Başlık fontunu kutu genişliğine göre daralt (Büyük çıkmasını engeller)
+  hwLabelSize = Math.max(4, Math.min(8, colW * 0.45)); 
+  
+  var pageNum = 1;
+  
+  function drawPageHeader() {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(fSizeTitle);
+      var title = clearTr(state.currentClass.name) + " - Odev Takip Cizelgesi" + (isCompact ? " (Tek Sayfa)" : "");
+      doc.text(title, 10, 15);
+      
+      doc.setFontSize(fSizeSub);
+      doc.setFont('helvetica', 'normal');
+      doc.text("Tarih: " + today() + "   Sayfa: " + pageNum, 10, 21);
+      
+      // No ve Ad Soyad Başlıkları
+      doc.setFontSize(fSizeHeader);
+      doc.setFont('helvetica', 'bold');
+      doc.rect(10, startY, noW, rowH);
+      doc.text("No", 10 + noW/2, startY + (rowH/2) + 1.2, {align:'center'});
+      
+      doc.rect(10+noW, startY, nameW, rowH);
+      doc.text("Ad Soyad", 10+noW + 2, startY + (rowH/2) + 1.2);
+      
+      // SADECE VAR OLAN ÖDEVLERE SÜTUN ÇİZ
+      for(var i = 0; i < hws.length; i++) {
+        var x = 10 + noW + nameW + (i * colW);
+        doc.rect(x, startY, colW, rowH);
+        
+        // İsmi dar kutuya sığdırmak için akıllıca kırp (ÇOK UZUN OLMASINI ENGELLER)
+        doc.setFontSize(hwLabelSize);
+        var maxChar = Math.max(3, Math.floor(colW / 1.6)); 
+        var shortName = clearTr(hws[i].name);
+        if(shortName.length > maxChar) shortName = shortName.substring(0, maxChar) + '.';
+        doc.text(shortName, x + colW/2, startY + (rowH/2) + 1.2, {align:'center'});
+      }
+  }
+
+  drawPageHeader();
+  var currY = startY + rowH;
+  
+  state.students.forEach(function(stu) {
+    // EĞER "NORMAL" MODDAYSA VE SAYFA DOLDUYSA YENİ SAYFAYA GEÇ
+    if(!isCompact && currY > 190) { 
+      doc.addPage();
+      pageNum++;
+      drawPageHeader();
+      currY = startY + rowH;
+    }
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(fSizeData);
+    doc.rect(10, currY, noW, rowH);
+    doc.text(String(stu.no), 10 + noW/2, currY + (rowH/2) + 1.2, {align:'center'});
+    
+    doc.rect(10+noW, currY, nameW, rowH);
+    var fullName = clearTr(stu.ad + " " + stu.soyad);
+    var maxLen = isCompact ? 22 : 28;
+    if(fullName.length > maxLen) fullName = fullName.substring(0, maxLen - 2) + '..';
+    doc.text(fullName, 10+noW + 2, currY + (rowH/2) + 1.2);
+    
+    // SADECE VAR OLAN ÖDEVLERE HÜCRE ÇİZ
+    for(var i = 0; i < hws.length; i++) {
+      var x = 10 + noW + nameW + (i * colW);
+      doc.rect(x, currY, colW, rowH); 
+      
+      var val = data[stu.no + '_' + hws[i].id] || '';
+      if(val) {
+        doc.setFontSize(fSizeVal);
+        doc.setFont('helvetica', 'bold');
+        doc.text(val, x + colW/2, currY + (rowH/2) + 1.5, {align:'center'});
+      }
+    }
+    currY += rowH;
+  });
   
   doc.save(clearTr(state.currentClass.name).replace(/[\/\\]/g, '') + "_Odev_Cizelgesi.pdf");
-  notify('Kareli Ödev Çizelgesi PDF İndirildi! ✅', 'success');
+  notify((isCompact ? 'Tek Sayfa PDF' : 'Kareli Çizelge PDF') + ' İndirildi! ✅', 'success');
 }
 
 
