@@ -2062,7 +2062,7 @@ function checkRehberDurum() {
 // ════════════════════════════════
 // SABITLER
 // ════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbyHUknQzuyzSH7GjwnB43Ew68Fsy4_4ttILcHbDIVZEiQ02g7M9TgilHEUrudHg6-ck/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby3srOAcuyDrFVkdFwl7gu6p3xvrnwXizye9lyi-vZdCSAtP9y7iCUZwXRXqz30z7cn/exec";
 const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
 const BRANCH_LABELS = { Edebiyat: 'T\u00fcrk Dili ve Edebiyat\u0131', Ingilizce: '\u0130ngilizce', Fransizca: 'Frans\u0131zca' };
 const STORAGE_KEY = 'vpAL3';
@@ -2188,18 +2188,17 @@ async function boot() {
   applyTheme();
   
   if (state.teacher) {
-    // 1. ÇÖZÜM: Kaldığı yeri hatırlama kodlarını sildik. 
-    // Her sayfa yenilendiğinde/açıldığında doğrudan Ana Sayfa (Dashboard) açılır.
-    showDashboard();
+    // 🚀 EĞER VELİ HOCA SİSTEMDEYKEN ANA SAYFAYI AÇARSA DİREKT DİN SAYFASINA AT 🚀
+    if (state.teacher === "Veli Duran Yalçın") {
+        window.location.href = "din.html";
+        return; // Kodu burada durdur
+    }
 
-    // 2. ÇÖZÜM (HIZLANDIRMA): Telefonun/Tarayıcının hafızasındaki (LocalStorage)
-    // verilerle ekranı ANINDA çizdiriyoruz. Google'ı beklemek yok.
+    showDashboard();
     renderDashboard();
 
-    // Arka planda Google Sheets ile senkronize ol, ekranı dondurma (await kaldırıldı)
     notify('Veriler güncelleniyor... ⏳', 'info', 2000);
     loadTeacherProfile(state.teacher).then(function() {
-        // Buluttan yeni veriler gelirse ana sayfayı sessizce arka planda tazele
         var currentScreen = document.querySelector('.screen.active');
         if (currentScreen && currentScreen.id === 'screen-dashboard') {
             renderDashboard();
@@ -2283,7 +2282,6 @@ async function doLogin() {
   setErr('');
   
   try {
-    // Şifreyi URL'de taşımak yerine POST body'si içinde güvenle gönderiyoruz
     var payload = { action: 'login', user: name, pass: pass };
     var resp = await fetch(API_URL, {
       method: 'POST',
@@ -2306,7 +2304,14 @@ async function doLogin() {
       hydrate(); 
       await loadTeacherProfile(state.teacher);
       notify('Giriş başarılı! Hoş geldiniz 🎉', 'success');
-      showDashboard();
+
+      // 🚀 YÖNLENDİRME MANTIĞI BURADA BAŞLIYOR 🚀
+      if (state.teacher === "Veli Duran Yalçın") {
+         window.location.href = "din.html"; // Veli Hocayı direkt sayfasına at
+      } else {
+         showDashboard(); // Diğer öğretmenleri normal sisteme al
+      }
+
     } else { 
       setErr(result.msg || 'Ad soyad veya şifre hatalı.'); 
     }
@@ -3330,20 +3335,30 @@ async function syncTeacherProfile() {
   Object.keys(state.multScores || {}).forEach(function (key) { if (key === '_general' || myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myMultScores[key] = state.multScores[key]; });
   Object.keys(state.notes).forEach(function (key) { if (myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myNotes[key] = state.notes[key]; });
   
-  // ▼ AŞAĞIDAKİ SATIRLARI SİLDİK, ARTIK ÖĞRETMEN PROFİLİNE PLAN KAYDETMİYORUZ ▼
-try {
+  try {
     await fetch(API_URL, { 
         method: 'POST', mode: 'cors', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({ 
             action: 'saveTeacherData', 
             teacher: state.teacher, 
-            token: state.token, // YENİ EKLENDİ
-            jsonData: JSON.stringify({ classes: myClasses, notes: myNotes, statuses: myStatuses, multScores: myMultScores })
+            token: state.token, 
+            // 🚀 BURASI DEĞİŞTİ: Yeni modüller (Ödev ve Performans) buluta gönderiliyor
+            jsonData: JSON.stringify({ 
+                classes: myClasses, 
+                notes: myNotes, 
+                statuses: myStatuses, 
+                multScores: myMultScores,
+                hwList: state.hwList,
+                hwData: state.hwData,
+                perfScores: state.perfScores,
+                perfCriteria: state.perfCriteria,
+                perfCourseNames: state.perfCourseNames
+            })
         }) 
     });
   } catch (e) {
     console.error('Bulut senkronizasyonu başarısız:', e.message);
-    notify('Bulut eşitleme hatası. Ağ bağlantınızı veya eklentilerinizi kontrol edin.', 'error', 4000); 
+    notify('Bulut eşitleme hatası. Ağ bağlantınızı kontrol edin.', 'error', 4000); 
   }
 }
 
@@ -3356,25 +3371,32 @@ async function loadTeacherProfile(teacherName) {
     var text = await resp.text();
     if (!text || text.trim() === '' || text.trim() === 'null') return;
     
-    // 🌟 YENİ: SUNUCUDAN HATA GELİRSE LİSTEYİ SİLME, ÇIKIŞA YÖNLENDİR!
     if (text.indexOf('HATA') !== -1 || text.indexOf('error') !== -1) { 
       console.warn('Güvenlik Uyarısı:', text); 
       if (text.indexOf('Yetkisiz') !== -1 || text.indexOf('Geçersiz') !== -1) {
           notify('Oturumunuz geçersiz! Lütfen tekrar giriş yapın.', 'error', 4000);
-          setTimeout(confirmLogout, 1500); // Otomatik çıkış yaptırır
+          setTimeout(confirmLogout, 1500); 
       }
-      return; // İşlemi durdur, verileri silmesini engelle!
+      return; 
     }
     
     var data = JSON.parse(text);
     if (data && typeof data === 'object') {
-      if (data.error) return; // Ekstra güvenlik
+      if (data.error) return; 
       
       state.classes = data.classes || []; 
       state.notes = data.notes || {};
       state.statuses = data.statuses || {}; 
       state.multScores = data.multScores || {};
       state.seatingPlans = data.seatingPlans || {}; 
+      
+      // 🚀 BURASI DEĞİŞTİ: Cihaz değiştiğinde veriler buluttan geri çekiliyor
+      state.hwList = data.hwList || {};
+      state.hwData = data.hwData || {};
+      state.perfScores = data.perfScores || {};
+      state.perfCriteria = data.perfCriteria || {};
+      state.perfCourseNames = data.perfCourseNames || {};
+
       persist(); 
       console.log('Profil yüklendi:', state.classes.length, 'sınıf');
     }
