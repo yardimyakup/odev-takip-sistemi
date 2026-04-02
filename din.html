@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <script>
   // 🚀 GÜVENLİK BARİYERİ 🚀
-  // Kullanıcı giriş yapmamışsa, sayfayı hiç yüklemeden index.html'e geri atar.
   if (!localStorage.getItem('vpAL3_teacher') || !localStorage.getItem('vpAL3_token')) {
     window.location.replace("index.html");
   }
@@ -107,44 +106,92 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 .btn-pdf { background: var(--red-light); color: var(--red); border: 1.5px solid var(--red-mid); padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: var(--font); display: none; }
 .btn-pdf:active { transform: scale(0.95); }
 
-/* STICKY TABLO (Aşağı kaydırınca başlıklar sabit kalır) */
-.table-scroll { max-height: 60vh; overflow-y: auto; overflow-x: auto; }
+/* ── SABİT (YAPIŞKAN) SÜTUNLAR DÜZELTMESİ ── */
+.table-scroll { max-height: 65vh; overflow-y: auto; overflow-x: auto; position: relative; }
+
 table { width: 100%; border-collapse: collapse; min-width: 900px; }
+
+.sticky-col-1 {
+  position: sticky !important;
+  left: 0;
+  z-index: 10;
+  background: #fff;
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+}
+
+.sticky-col-2 {
+  position: sticky !important;
+  left: 44px !important; /* İlk sütunun tam bittiği yerden başlar */
+  z-index: 10;
+  background: #fff;
+  width: 180px !important;
+  min-width: 180px !important;
+  max-width: 180px !important;
+  border-right: 2px solid var(--border) !important;
+  box-shadow: 4px 0 12px rgba(0,0,0,0.06); /* Sağa doğru gölge vererek derinlik hissi sağlar */
+}
+
+/* Başlıktaki (thead) sabit sütunlar hem üstte hem solda kalmalı */
 thead { position: sticky; top: 0; z-index: 50; }
 thead tr { background: #1a202e; color: #fff; }
+
+thead .sticky-col-1, 
+thead .sticky-col-2 {
+  background: #1a202e !important; /* Koyu lacivert başlık rengi */
+  z-index: 99 !important; /* DİĞER HER ŞEYİ EZİP ÜSTTE KALIR */
+  border-bottom: none;
+}
+
+/* Kayan (Ölçek) başlıkların z-index'ini düşürerek alttan geçmesini sağla */
+thead th:not(.sticky-col-1):not(.sticky-col-2) {
+  position: relative;
+  z-index: 1 !important;
+}
+
+/* Çift satırlardaki arkaplan renklerinin kaydırma sırasında şeffaflaşmasını önle */
+tbody tr:nth-child(even) .sticky-col-1,
+tbody tr:nth-child(even) .sticky-col-2 {
+  background: #fafbfc !important;
+}
+
+/* Üzerine gelince hover renklerinin şeffaflaşmasını önle */
+tbody tr:hover .sticky-col-1,
+tbody tr:hover .sticky-col-2 {
+  background: #fdf2f1 !important;
+}
+
 th { padding: 10px 7px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; text-align: center; border-right: 1px solid rgba(255,255,255,0.08); background: #1a202e; }
 th:last-child { border-right: none; }
-td { border: 1px solid var(--border); padding: 7px 6px; text-align: center; vertical-align: middle; font-size: 13px; }
-.td-name { text-align: left; font-weight: 700; font-size: 12.5px; padding-left: 12px; min-width: 155px; }
-.td-no { font-size: 12px; color: var(--text-soft); font-weight: 700; min-width: 34px; }
+td { border: 1px solid var(--border); padding: 7px 6px; text-align: center; vertical-align: middle; font-size: 14px; font-weight: 600; }
+.td-name { text-align: left; font-weight: 700; font-size: 12.5px; padding-left: 12px; }
+.td-no { font-size: 12px; color: var(--text-soft); font-weight: 700; }
 tbody tr:nth-child(even) { background: #fafbfc; }
 tbody tr:hover { background: #fdf2f1; }
 
-/* Kriter Başlıkları - YENİ TASARIM (Daha Şık ve Tıklanabilir) */
-.th-crit { min-width: 110px; }
+.th-crit { min-width: 130px; }
 .crit-name { 
   font-size: 9.5px; font-weight: 800; color: #fff; background: transparent; 
-  border: 1px dashed rgba(255,255,255,0.2); display: block; margin: 0 auto 5px; 
-  line-height: 1.35; width: 100%; text-align: center; border-radius: 4px; padding: 4px; 
-  transition: 0.2s;
+  border: 1px dashed rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; 
+  min-height: 36px; margin: 0 auto 5px; line-height: 1.3; width: 100%; text-align: center; 
+  border-radius: 4px; padding: 4px; cursor: pointer; transition: 0.2s; 
 }
-.crit-name:focus { border-color: #fff; outline: none; background: rgba(255,255,255,0.1); }
+.crit-name:hover { background: rgba(255,255,255,0.15); border-color: #fff; }
 .crit-max-row { display: flex; align-items: center; justify-content: center; gap: 4px; }
 .crit-max-label { font-size: 9px; color: rgba(255,255,255,0.6); }
-.crit-max-input {
-  width: 38px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px;
-  color: #fde68a; font-size: 11px; font-weight: 800; text-align: center; font-family: var(--font); outline: none; padding: 2px 3px;
-  transition: 0.2s;
-}
-.crit-max-input:focus { background: rgba(255,255,255,0.25); border-color:#fde68a; }
+.crit-max-input { font-size: 11px; font-weight: 800; color: #fde68a; }
 
-/* Puan Giriş */
-.puan-input { width: 50px; height: 36px; text-align: center; font-weight: 900; font-size: 15px; border: 2px solid #dce1ea; border-radius: 7px; background: #fff; outline: none; font-family: var(--font); color: var(--text); }
+/* Puan Giriş (TOPLAM SÜTUNU İÇİN) */
+.puan-input { width: 65px; height: 38px; text-align: center; font-weight: 900; font-size: 16px; border: 2px solid var(--red-mid); border-radius: 7px; background: #fff; outline: none; font-family: var(--font); color: var(--red); margin: 0 auto; display: block; }
 .puan-input:focus { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-glow); }
 .puan-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 
+/* Dağıtılan Puan Hücreleri */
+.dist-cell { color: var(--text-soft); font-weight: 700; background: #fafbfc; }
+
 /* Toplam */
-.toplam-cell { font-size: 16px; font-weight: 900; color: var(--red); background: linear-gradient(135deg, #fdf2f1, #fce4e1); min-width: 62px; border-left: 2px solid var(--red-mid) !important; }
+.toplam-cell { background: linear-gradient(135deg, #fdf2f1, #fce4e1); min-width: 90px; border-left: 2px solid var(--red-mid) !important; padding: 4px !important; }
 
 /* Bildirim */
 #notif-wrap { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column-reverse; gap: 8px; pointer-events: none; width: min(340px, calc(100vw - 28px)); }
@@ -153,11 +200,9 @@ tbody tr:hover { background: #fdf2f1; }
 .notif.error   { background: #c0392b; }
 .notif.info    { background: #1a5276; }
 @keyframes notifIn { from { opacity:0; transform:translateY(14px) scale(0.94); } to { opacity:1; transform:translateY(0) scale(1); } }
-@keyframes notifOut { from { opacity:1; } to { opacity:0; transform:translateY(10px); } }
 
 /* ── 🖨️ PDF YAZDIRMA (MAKSİMUM SIKIŞTIRMA) ── */
 @media print {
-  /* Kenar boşluklarını sıfıra yakın yapıyoruz ki A4'e tam otursun */
   @page { size: A4 landscape; margin: 4mm 5mm; } 
   html, body { background: #fff !important; margin: 0; padding: 0; }
   .no-print { display: none !important; }
@@ -166,28 +211,26 @@ tbody tr:hover { background: #fdf2f1; }
   .table-scroll { max-height: none !important; overflow: visible !important; }
   table { min-width: 100% !important; border-collapse: collapse !important; border: 1px solid #000; }
   
-  /* Hücreleri inanılmaz daraltıp sadece veriyi gösteriyoruz */
-  th, td { border: 1px solid #000 !important; height: 16px !important; padding: 1px 2px !important; }
+  th, td { border: 1px solid #000 !important; height: 18px !important; padding: 2px 4px !important; }
   
-  /* Başlıkları ve fontları minnacık yapıyoruz ki alt satıra taşmasın */
-  th { background: #fff !important; color: #000 !important; padding: 2px !important; }
+  th { background: #fff !important; color: #000 !important; padding: 4px !important; }
   td { font-size: 11px !important; font-weight: bold !important; color: #000 !important; }
   
-  .td-name { font-size: 10px !important; font-weight: 800 !important; min-width: auto !important; padding-left: 4px !important; }
+  .td-name { font-size: 10.5px !important; font-weight: 800 !important; min-width: auto !important; padding-left: 4px !important; }
   .td-no { font-size: 9.5px !important; min-width: auto !important; }
   
-  /* Giriş kutularını dümdüz metin gibi göster */
-  .puan-input { border: none !important; background: transparent !important; width: 100% !important; height: auto !important; font-size: 11px !important; font-weight: 900 !important; color: #000 !important; padding: 0 !important; display: block; }
-  .crit-name { font-size: 8px !important; color: #000 !important; font-weight: 900 !important; border: none !important; margin: 0 !important; padding: 0 !important; }
+  .puan-input { border: none !important; background: transparent !important; width: 100% !important; height: auto !important; font-size: 12px !important; font-weight: 900 !important; color: #000 !important; padding: 0 !important; display: block; text-align: center; }
+  .dist-cell { font-size: 11px !important; color: #333 !important; background: transparent !important; }
+  .crit-name { font-size: 9px !important; color: #000 !important; font-weight: 900 !important; border: none !important; margin: 0 !important; padding: 0 !important; min-height: auto !important;}
   
-  /* MAX: 15 Kısmını fotoğraftaki gibi ( MAX: 15 ) şeklinde çıkar */
-  .crit-max-row { display: inline-block !important; }
-  .crit-max-label { display: none !important; } /* Labeli gizle, parantezi biz koyacağız */
-  .crit-max-input { font-size: 7.5px !important; border: none !important; background: transparent !important; color: #e02020 !important; padding: 0 !important; font-weight: bold !important; width: auto !important; display: inline-block; }
+  .crit-max-row { display: inline-block !important; margin-top: 2px; }
+  .crit-max-label { display: none !important; } 
+  .crit-max-input { font-size: 8px !important; border: none !important; background: transparent !important; color: #e02020 !important; padding: 0 !important; font-weight: bold !important; width: auto !important; display: inline-block; }
   
-  .toplam-cell { font-size: 11px !important; color: #000 !important; background: transparent !important; border-left: 1px solid #000 !important; }
+  .toplam-cell { font-size: 12px !important; color: #000 !important; background: transparent !important; border-left: 1px solid #000 !important; }
   
-  thead tr { position: static !important; } /* Yapışkanlığı iptal et PDF'te */
+  thead tr { position: static !important; } 
+  .sticky-col-1, .sticky-col-2 { position: static !important; box-shadow: none !important; width: auto !important; left: auto !important; }
   .print-header { display: block !important; }
   tbody tr { page-break-inside: avoid; }
 }
@@ -197,20 +240,16 @@ tbody tr:hover { background: #fdf2f1; }
 .print-school { font-size: 14px; font-weight: 900; color: #000; }
 .print-lesson { font-size: 11px; font-weight: 700; color: #333; margin-top: 2px; }
 .print-meta { font-size: 10px; font-weight: bold; color: #000; text-align: right; line-height: 1.4; }
-/* MODAL (AÇILIR PENCERE) TASARIMI */
+
+/* MODAL */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
 .modal-box { background: #fff; padding: 20px; border-radius: var(--r); width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: popIn 0.3s ease; }
 .modal-box h3 { margin-bottom: 10px; color: var(--red); font-size: 16px; }
 @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-/* ESKİ .crit-name YERİNE BUNU KOY (Artık tıklanabilir metin) */
-.crit-name { 
-  font-size: 9.5px; font-weight: 800; color: #fff; background: transparent; 
-  border: 1px dashed rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; 
-  min-height: 32px; margin: 0 auto 5px; line-height: 1.3; width: 100%; text-align: center; 
-  border-radius: 4px; padding: 4px; cursor: pointer; transition: 0.2s; 
-}
-.crit-name:hover { background: rgba(255,255,255,0.15); border-color: #fff; }
+/* Yükleme ikonu */
+.spin { display:inline-block; width:14px; height:14px; border:2.5px solid rgba(255,255,255,0.35); border-top-color:#fff; border-radius:50%; animation:sp 0.7s linear infinite; vertical-align:middle; margin-right:5px; }
+@keyframes sp { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -236,7 +275,7 @@ tbody tr:hover { background: #fdf2f1; }
     <div class="topbar-logo">VP</div>
     <div>
       <div class="topbar-title">Din Kültürü ve Ahlak Bilgisi</div>
-      <div class="topbar-sub">Veli Duran Yalçın — Performans Modülü</div>
+      <div class="topbar-sub">Veli Duran Yalçın — Otomatik Puan Dağıtım</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -246,7 +285,7 @@ tbody tr:hover { background: #fdf2f1; }
 
 <div class="hero no-print">
   <div class="hero-title">Hoş Geldiniz, Veli Hoca! 👋</div>
-  <div class="hero-sub">Sınıf adını yazıp "Listeyi Çek" butonuna basın</div>
+  <div class="hero-sub">Sınıf adını yazıp listeyi çekin, sadece TOPLAM PUAN'ı girin, sistem kendi dağıtsın.</div>
 </div>
 
 <div class="stats-row no-print">
@@ -274,99 +313,27 @@ tbody tr:hover { background: #fdf2f1; }
       <input type="text" id="sinifInput" class="search-input" placeholder="Örnek: 10A veya 10/A ..." autocomplete="off" onkeydown="if(event.key==='Enter') ogrencileriGetir()">
       <button class="btn-primary" onclick="ogrencileriGetir()">📋 Listeyi Çek</button>
     </div>
-    <div class="hint-box">
-      💡 10A, 10a, 10/A hepsini anlıyorum. Tablodaki başlık ve puan kutucuklarına tıklayıp kendi ölçeklerinizi yazabilirsiniz.
-    </div>
   </div>
 </div>
 
 <div class="table-panel" id="table-panel">
   <div class="table-panel-header no-print">
-    <div class="table-panel-title" id="table-panel-title">📊 Değerlendirme Tablosu</div>
+    <div class="table-panel-title" id="table-panel-title">📊 Otomatik Dağılımlı Değerlendirme Tablosu</div>
     <div style="display:flex; gap:8px;">
       <button class="btn-primary" id="btn-kaydet" onclick="bulutaKaydet()" style="display:none; background: var(--green); box-shadow: 0 3px 12px rgba(30,132,73,0.35);">💾 Kaydet</button>
-      
       <button class="btn-pdf" id="btn-pdf" onclick="window.print()">📄 PDF İndir / Yazdır</button>
     </div>
   </div>
   <div class="table-scroll">
     <table id="mainTable">
-      <thead>
-        <tr>
-          <th style="width:30px;">No</th>
-          <th style="width:18%; text-align:left; padding-left:12px;">Ad Soyad</th>
-         <th class="th-crit">
-            <div class="crit-name" id="crit_name_1" onclick="acCritModal(1)">Adalete İlgili İlkeleri Belirleme</div>
-            <div class="crit-max-row">
-              <span class="crit-max-label">MAX:</span>
-              <span class="no-print" style="display:none;" id="pdf-parantez-1-sol">(</span>
-              <input type="number" class="crit-max-input" id="max_1" value="15" onchange="hesaplaTumunu()">
-              <span class="no-print" style="display:none;" id="pdf-parantez-1-sag"> PUAN)</span>
-            </div>
-          </th>
-          <th class="th-crit">
-            <div class="crit-name" id="crit_name_2" onclick="acCritModal(2)">Adalete İlgili İlkeler Arasındaki İlişkiyi Belirleyebilme</div>
-            <div class="crit-max-row">
-              <span class="crit-max-label">MAX:</span>
-              <span class="no-print" style="display:none;" id="pdf-parantez-2-sol">(</span>
-              <input type="number" class="crit-max-input" id="max_2" value="15" onchange="hesaplaTumunu()">
-              <span class="no-print" style="display:none;" id="pdf-parantez-2-sag"> PUAN)</span>
-            </div>
-          </th>
-          <th class="th-crit">
-            <div class="crit-name" id="crit_name_3" onclick="acCritModal(3)">Eserden Çıkarılan Mesajları Raporlandırma</div>
-            <div class="crit-max-row">
-              <span class="crit-max-label">MAX:</span>
-              <span class="no-print" style="display:none;" id="pdf-parantez-3-sol">(</span>
-              <input type="number" class="crit-max-input" id="max_3" value="15" onchange="hesaplaTumunu()">
-              <span class="no-print" style="display:none;" id="pdf-parantez-3-sag"> PUAN)</span>
-            </div>
-          </th>
-          <th class="th-crit">
-            <div class="crit-name" id="crit_name_4" onclick="acCritModal(4)">Raporda Yer Alan Cümleler Açık ve Anlaşılır Oluşu</div>
-            <div class="crit-max-row">
-              <span class="crit-max-label">MAX:</span>
-              <span class="no-print" style="display:none;" id="pdf-parantez-4-sol">(</span>
-              <input type="number" class="crit-max-input" id="max_4" value="15" onchange="hesaplaTumunu()">
-              <span class="no-print" style="display:none;" id="pdf-parantez-4-sag"> PUAN)</span>
-            </div>
-          </th>
-          <th class="th-crit">
-            <div class="crit-name" id="crit_name_5" onclick="acCritModal(5)">Çalışmanın Sınıf Ortamında Sunumu</div>
-            <div class="crit-max-row">
-              <span class="crit-max-label">MAX:</span>
-              <span class="no-print" style="display:none;" id="pdf-parantez-5-sol">(</span>
-              <input type="number" class="crit-max-input" id="max_5" value="15" onchange="hesaplaTumunu()">
-              <span class="no-print" style="display:none;" id="pdf-parantez-5-sag"> PUAN)</span>
-            </div>
-          </th>
-          <th class="th-crit">
-            <div class="crit-name" id="crit_name_6" onclick="acCritModal(6)">Konuya Hâkimiyet ve Özgünlük</div>
-            <div class="crit-max-row">
-              <span class="crit-max-label">MAX:</span>
-              <span class="no-print" style="display:none;" id="pdf-parantez-6-sol">(</span>
-              <input type="number" class="crit-max-input" id="max_6" value="15" onchange="hesaplaTumunu()">
-              <span class="no-print" style="display:none;" id="pdf-parantez-6-sag"> PUAN)</span>
-            </div>
-          </th>
-          <th class="th-crit">
-            <div class="crit-name" id="crit_name_7" onclick="acCritModal(7)">Zamanı Etkili Kullanma</div>
-            <div class="crit-max-row">
-              <span class="crit-max-label">MAX:</span>
-              <span class="no-print" style="display:none;" id="pdf-parantez-7-sol">(</span>
-              <input type="number" class="crit-max-input" id="max_7" value="10" onchange="hesaplaTumunu()">
-              <span class="no-print" style="display:none;" id="pdf-parantez-7-sag"> PUAN)</span>
-            </div>
-          </th>
-          <th style="min-width:66px; border-left:2px solid rgba(255,255,255,0.2);">TOPLAM</th>
-        </tr>
-      </thead>
+      <thead id="listeBaslik">
+        </thead>
       <tbody id="listeGovdesi">
         <tr>
-          <td colspan="10">
-            <div class="empty-state">
-              <span class="empty-icon">📚</span>
-              <div class="empty-text">Sınıf adını yazıp "Listeyi Çek" butonuna basın</div>
+          <td colspan="8">
+            <div style="padding:40px; text-align:center; color:var(--text-soft); font-weight:600;">
+              <span style="font-size:30px; display:block; margin-bottom:10px;">📚</span>
+              Sınıf adını yazıp "Listeyi Çek" butonuna basın
             </div>
           </td>
         </tr>
@@ -381,8 +348,8 @@ tbody tr:hover { background: #fdf2f1; }
     <p style="font-size: 11px; color: var(--text-soft); margin-bottom: 10px;">PDF'te düzgün görünmesi için çok uzun yazmamaya özen gösterin.</p>
     <textarea id="crit-modal-input" class="search-input" rows="3" style="width: 100%; resize: none; margin-bottom: 15px; font-size:13px;"></textarea>
     <div style="display: flex; gap: 10px;">
-      <button class="btn" style="flex: 1; background: #9aaab8;" onclick="kapatCritModal()">İptal</button>
-      <button class="btn" style="flex: 1; background: var(--green);" onclick="kaydetCritModal()">Kaydet</button>
+      <button class="btn-primary" style="flex: 1; background: #9aaab8; box-shadow:none;" onclick="kapatCritModal()">İptal</button>
+      <button class="btn-primary" style="flex: 1; background: var(--green); box-shadow:none;" onclick="kaydetCritModal()">Kaydet</button>
     </div>
   </div>
 </div>
@@ -391,81 +358,138 @@ tbody tr:hover { background: #fdf2f1; }
 // 🚀 ANA GOOGLE SHEETS LİNKİ
 const API_URL = "https://script.google.com/macros/s/AKfycby3srOAcuyDrFVkdFwl7gu6p3xvrnwXizye9lyi-vZdCSAtP9y7iCUZwXRXqz30z7cn/exec";
 const STORAGE_KEY = 'vpDin_';
-const KRITER_SAYISI = 7;
+
+// 🚀 5'Lİ KRİTER LİSTESİ (Buradan Kendi İstediğin Gibi Değiştirebilirsin)
+let DIN_CRITERIA = [
+  { text: "Kur'an-ı Kerim'i Yüzünden Tecvitli ve Doğru Okuma", max: 20 },
+  { text: "Ezberlenmesi Gereken Sure ve Duaları Doğru Okuma", max: 20 },
+  { text: "Temel Dini Bilgileri İfade Etme / Kavrama", max: 20 },
+  { text: "Derse Aktif Katılım ve Soru Sorma", max: 20 },
+  { text: "Ders İçi Tutum, Davranış ve Ahlaki Durum", max: 20 }
+];
 
 var aktifOgrenciSayisi = 0;
 var aktifSinifAdi = '';
 var puanlarCache = {};
+var aktifKriterId = null;
 
 window.addEventListener('DOMContentLoaded', function() {
-  yukleKayitliDurum();
-  // PDF Yazdırırken Parantezleri Gösteren Küçük Hile
-  window.onbeforeprint = function() {
-      for(var i=1; i<=7; i++) {
-          document.getElementById('pdf-parantez-'+i+'-sol').style.display = 'inline-block';
-          document.getElementById('pdf-parantez-'+i+'-sag').style.display = 'inline-block';
-      }
-  };
-  window.onafterprint = function() {
-      for(var i=1; i<=7; i++) {
-          document.getElementById('pdf-parantez-'+i+'-sol').style.display = 'none';
-          document.getElementById('pdf-parantez-'+i+'-sag').style.display = 'none';
-      }
-  };
-});
-
-function yukleKayitliDurum() {
-  for (var i = 1; i <= KRITER_SAYISI; i++) {
-    // MAX Puanları Yükle
-    var maxVal = localStorage.getItem(STORAGE_KEY + 'max_' + i);
-    if (maxVal) document.getElementById('max_' + i).value = maxVal;
-    
-    // Kriter İsimlerini Yükle
-    var savedName = localStorage.getItem(STORAGE_KEY + 'crit_name_' + i);
-    if (savedName) document.getElementById('crit_name_' + i).innerText = savedName;
-  }
+  yukleKayitliKriterler();
+  renderHeader();
+  
   var lastSinif = localStorage.getItem(STORAGE_KEY + 'lastSinif');
   if (lastSinif) {
     document.getElementById('last-sinif-label').textContent = lastSinif;
     document.getElementById('sinifInput').value = lastSinif;
     setTimeout(ogrencileriGetir, 400);
   }
+
+  // PDF Yazdırırken Parantezleri Gösteren Küçük Hile
+  window.onbeforeprint = function() {
+      for(var i=0; i<5; i++) {
+          let elSol = document.getElementById('pdf-parantez-'+i+'-sol');
+          let elSag = document.getElementById('pdf-parantez-'+i+'-sag');
+          if(elSol) elSol.style.display = 'inline-block';
+          if(elSag) elSag.style.display = 'inline-block';
+      }
+  };
+  window.onafterprint = function() {
+      for(var i=0; i<5; i++) {
+          let elSol = document.getElementById('pdf-parantez-'+i+'-sol');
+          let elSag = document.getElementById('pdf-parantez-'+i+'-sag');
+          if(elSol) elSol.style.display = 'none';
+          if(elSag) elSag.style.display = 'none';
+      }
+  };
+});
+
+function yukleKayitliKriterler() {
+  for (var i = 0; i < DIN_CRITERIA.length; i++) {
+    var savedName = localStorage.getItem(STORAGE_KEY + 'crit_name_' + i);
+    if (savedName) DIN_CRITERIA[i].text = savedName;
+  }
 }
 
+// ── TABLO BAŞLIKLARINI ÇİZDİR (YAPIŞKAN GÜNCELLEMESİ YAPILDI) ──
+function renderHeader() {
+  var html = '<tr>' +
+             '<th class="sticky-col-1">No</th>' +
+             '<th class="sticky-col-2" style="text-align:left; padding-left:12px;">Ad Soyad</th>';
+  
+  DIN_CRITERIA.forEach(function(c, i) {
+    html += '<th class="th-crit">' +
+              '<div class="crit-name" id="crit_name_' + i + '" onclick="acCritModal(' + i + ')">' + c.text + '</div>' +
+              '<div class="crit-max-row">' +
+                '<span class="crit-max-label">MAX: </span>' +
+                '<span class="no-print" style="display:none;" id="pdf-parantez-' + i + '-sol">(</span>' +
+                '<span class="crit-max-input">' + c.max + '</span>' +
+                '<span class="no-print" style="display:none;" id="pdf-parantez-' + i + '-sag"> PUAN)</span>' +
+              '</div>' +
+            '</th>';
+  });
+  
+  html += '<th style="min-width:100px; border-left:2px solid rgba(255,255,255,0.2);">TOPLAM<br>(BURAYA GİRİN)</th></tr>';
+  document.getElementById('listeBaslik').innerHTML = html;
+}
+
+// ── AKILLI PUAN DAĞITIM MATEMATİĞİ ──
+function distributePerfScore(totalScore, criteriaList) {
+  if (totalScore === "" || isNaN(totalScore)) return criteriaList.map(function() { return ''; });
+  totalScore = parseInt(totalScore);
+  if (totalScore <= 0) return criteriaList.map(function() { return 0; });
+  if (totalScore >= 100) return criteriaList.map(function(c) { return c.max; });
+
+  var result = criteriaList.map(function(c) { 
+    return Math.floor(totalScore * (c.max / 100)); 
+  });
+  
+  var currentSum = result.reduce(function(a, b) { return a + b; }, 0);
+  var remainder = totalScore - currentSum;
+
+  var fractions = criteriaList.map(function(c, i) {
+    return { index: i, frac: (totalScore * (c.max / 100)) - result[i], max: c.max };
+  });
+
+  fractions.sort(function(a, b) { return b.frac - a.frac || b.max - a.max; });
+
+  for (var i = 0; i < remainder; i++) {
+    result[fractions[i % fractions.length].index]++;
+  }
+  return result;
+}
+
+// ── HESAPLAMA VE DAĞITIM ──
 function hesapla(rowId) {
-  var toplam = 0;
-  for (var i = 1; i <= KRITER_SAYISI; i++) {
-    var input = document.getElementById('puan_' + rowId + '_' + i);
-    if (!input) continue;
-    var val = parseInt(input.value) || 0;
-    var maxVal = parseInt(document.getElementById('max_' + i).value) || 0;
-    if (val > maxVal) { val = maxVal; input.value = maxVal; }
-    if (val < 0)  { val = 0; input.value = 0; }
-    toplam += val;
-    if (!puanlarCache[aktifSinifAdi]) puanlarCache[aktifSinifAdi] = {};
-    puanlarCache[aktifSinifAdi]['r' + rowId + '_c' + i] = input.value;
+  var input = document.getElementById('total_' + rowId);
+  var val = parseInt(input.value);
+  
+  if (isNaN(val)) {
+    val = "";
+  } else if (val > 100) { 
+    val = 100; input.value = 100; notify('Maksimum 100 puan girebilirsiniz!', 'error'); 
+  } else if (val < 0) { 
+    val = 0; input.value = 0; 
   }
 
-  var el = document.getElementById('toplam_' + rowId);
-  if (el) {
-    el.textContent = toplam;
-    el.className = 'toplam-cell';
-  }
+  // Sadece Toplam Puanı Kaydet
+  if (!puanlarCache[aktifSinifAdi]) puanlarCache[aktifSinifAdi] = {};
+  puanlarCache[aktifSinifAdi]['r' + rowId] = val;
+
+  // Dağıtımı Yap ve Ekrana Bas
+  var dist = distributePerfScore(val, DIN_CRITERIA);
+  dist.forEach(function(d, i) {
+    var cell = document.getElementById('dist_' + rowId + '_' + i);
+    if (cell) cell.textContent = d;
+  });
+
   guncelleStatlar();
-}
-
-function hesaplaTumunu() {
-  for (var i = 1; i <= KRITER_SAYISI; i++) {
-    localStorage.setItem(STORAGE_KEY + 'max_' + i, document.getElementById('max_' + i).value);
-  }
-  for (var r = 0; r < aktifOgrenciSayisi; r++) hesapla(r);
 }
 
 function guncelleStatlar() {
   var girilenCount = 0;
   for (var r = 0; r < aktifOgrenciSayisi; r++) {
-    var el = document.getElementById('toplam_' + r);
-    if (el && parseInt(el.textContent) > 0) girilenCount++;
+    var val = puanlarCache[aktifSinifAdi] ? puanlarCache[aktifSinifAdi]['r' + r] : '';
+    if (val !== '' && !isNaN(val)) girilenCount++;
   }
   document.getElementById('stat-girilen').textContent = girilenCount;
 }
@@ -495,14 +519,14 @@ async function ogrencileriGetir() {
   var displayName = rawInput.trim().toUpperCase();
   document.getElementById('print-sinif').textContent = displayName;
   document.getElementById('print-tarih').textContent = new Date().toLocaleDateString('tr-TR');
-  document.getElementById('table-panel-title').textContent = '📊 ' + displayName + ' — Değerlendirme Tablosu';
+  document.getElementById('table-panel-title').textContent = '📊 ' + displayName + ' — Dağılımlı Değerlendirme';
   localStorage.setItem(STORAGE_KEY + 'lastSinif', displayName);
   document.getElementById('last-sinif-label').textContent = displayName;
 
   var teacher = localStorage.getItem('vpAL3_teacher') || '';
   var token   = localStorage.getItem('vpAL3_token')   || '';
 
-  document.getElementById('listeGovdesi').innerHTML = '<tr class="loading-row"><td colspan="10"><span class="spin"></span> Yükleniyor...</td></tr>';
+  document.getElementById('listeGovdesi').innerHTML = '<tr><td colspan="8"><div style="padding:40px; text-align:center;"><span class="spin"></span> Yükleniyor...</div></td></tr>';
 
   var students = null;
 
@@ -517,7 +541,7 @@ async function ogrencileriGetir() {
 
       if (data && data.error) {
         notify('Yetki hatası! Ana sistemden giriş yapın.', 'error');
-        document.getElementById('listeGovdesi').innerHTML = '<tr><td colspan="10"><div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-text">Yetki hatası. Önce ana sistemden giriş yapmalısınız.</div></div></td></tr>';
+        document.getElementById('listeGovdesi').innerHTML = '<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">⚠️</span><div class="empty-text">Yetki hatası. Önce ana sistemden giriş yapmalısınız.</div></div></td></tr>';
         return;
       }
       if (Array.isArray(data) && data.length > 0) { students = data; break; }
@@ -528,7 +552,7 @@ async function ogrencileriGetir() {
     aktifOgrenciSayisi = 0;
     document.getElementById('stat-sinif').textContent = displayName;
     document.getElementById('stat-ogrenci').textContent = '0';
-    document.getElementById('listeGovdesi').innerHTML = '<tr><td colspan="10"><div class="empty-state"><span class="empty-icon">🔍</span><div class="empty-text"><b>' + displayName + '</b> sınıfı bulunamadı.</div></div></td></tr>';
+    document.getElementById('listeGovdesi').innerHTML = '<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">🔍</span><div class="empty-text"><b>' + displayName + '</b> sınıfı bulunamadı.</div></div></td></tr>';
     notify(displayName + ' sınıfı bulunamadı!', 'error');
     return;
   }
@@ -538,9 +562,9 @@ async function ogrencileriGetir() {
   document.getElementById('stat-ogrenci').textContent = students.length;
   document.getElementById('stat-girilen').textContent = '0';
   document.getElementById('btn-pdf').style.display = 'inline-block';
-  document.getElementById('btn-kaydet').style.display = 'inline-block'; // Kaydet butonunu göster
+  document.getElementById('btn-kaydet').style.display = 'inline-block';
 
-  // 🚀 YENİ: VERİTABANINDAN ESKİ PUANLARI ÇEK
+  // Buluttan Eski Verileri Çek
   try {
     var dbUrl = API_URL + '?action=getDinOlcek&className=' + encodeURIComponent(aktifSinifAdi) +
                 '&teacher=' + encodeURIComponent(teacher) +
@@ -558,16 +582,21 @@ async function ogrencileriGetir() {
   var html = '';
 
   students.forEach(function(stu, index) {
+    var savedTotal = cachedPuanlar['r' + index] !== undefined ? cachedPuanlar['r' + index] : '';
+    var dist = distributePerfScore(savedTotal, DIN_CRITERIA);
+
     html += '<tr>';
-    html += '<td class="td-no">' + (stu.no || index + 1) + '</td>';
-    html += '<td class="td-name">' + (stu.ad || '') + ' ' + (stu.soyad || '') + '</td>';
-    for (var i = 1; i <= KRITER_SAYISI; i++) {
-      var savedVal = cachedPuanlar['r' + index + '_c' + i] || '';
-      html += '<td><input type="number" id="puan_' + index + '_' + i + '" class="puan-input" inputmode="numeric" min="0" value="' + savedVal + '" oninput="hesapla(' + index + ')"></td>';
-    }
-    var toplamBaslangic = 0;
-    for (var ci = 1; ci <= KRITER_SAYISI; ci++) toplamBaslangic += parseInt(cachedPuanlar['r' + index + '_c' + ci] || 0);
-    html += '<td class="toplam-cell" id="toplam_' + index + '">' + (toplamBaslangic || 0) + '</td>';
+    // ── YAPIŞKAN (STICKY) SÜTUN SINIFLARI EKLENDİ ──
+    html += '<td class="td-no sticky-col-1">' + (stu.no || index + 1) + '</td>';
+    html += '<td class="td-name sticky-col-2">' + (stu.ad || '') + ' ' + (stu.soyad || '') + '</td>';
+    
+    // Otomatik Dağıtılan Puanlar
+    dist.forEach(function(d, i) {
+      html += '<td class="dist-cell" id="dist_' + index + '_' + i + '">' + d + '</td>';
+    });
+    
+    // Toplam Puan Girişi
+    html += '<td class="toplam-cell"><input type="number" id="total_' + index + '" class="puan-input" min="0" max="100" value="' + savedTotal + '" oninput="hesapla(' + index + ')"></td>';
     html += '</tr>';
   });
 
@@ -577,7 +606,7 @@ async function ogrencileriGetir() {
 }
 
 
-// 🚀 YENİ: BULUTA KAYDET FONKSİYONU
+// 🚀 BULUTA KAYDET
 async function bulutaKaydet() {
   var teacher = localStorage.getItem('vpAL3_teacher') || '';
   var token   = localStorage.getItem('vpAL3_token')   || '';
@@ -587,8 +616,7 @@ async function bulutaKaydet() {
   var veriToSave = puanlarCache[aktifSinifAdi] || {};
 
   var btn = document.getElementById('btn-kaydet');
-  var oldText = btn.innerHTML;
-  btn.innerHTML = '<span class="spin"></span> Kaydediliyor...';
+  btn.innerHTML = '<span style="font-size:12px;">⏳</span> Bekleyin...';
   btn.disabled = true;
 
   try {
@@ -605,14 +633,14 @@ async function bulutaKaydet() {
     });
     var text = await resp.text();
     if (text.indexOf('kaydedildi') !== -1) {
-      notify('✅ Puanlar veritabanına kaydedildi!', 'success');
+      notify('✅ Puanlar başarıyla kaydedildi!', 'success');
     } else {
       notify('Sunucu mesajı: ' + text.substring(0,60), 'info');
     }
   } catch(e) {
     notify('Bağlantı hatası! Lütfen interneti kontrol edin.', 'error');
   }
-  btn.innerHTML = oldText;
+  btn.innerHTML = '💾 Kaydet';
   btn.disabled = false;
 }
 
@@ -639,15 +667,10 @@ function cikisYap() {
   window.location.href = 'index.html';
 }
 
-// MODAL FONKSİYONLARI
-var aktifKriterId = null;
-
-function acCritModal(id) {
-  aktifKriterId = id;
-  // Tablodaki mevcut metni alıp kutuya yaz
-  var mevcutMetin = document.getElementById('crit_name_' + id).innerText;
-  document.getElementById('crit-modal-input').value = mevcutMetin;
-  // Modalı aç
+// ── KRİTER MODALI (DÜZENLEME) ──
+function acCritModal(index) {
+  aktifKriterId = index;
+  document.getElementById('crit-modal-input').value = DIN_CRITERIA[index].text;
   document.getElementById('crit-modal').style.display = 'flex';
   setTimeout(function(){ document.getElementById('crit-modal-input').focus(); }, 100);
 }
@@ -657,14 +680,12 @@ function kapatCritModal() {
 }
 
 function kaydetCritModal() {
-  if(!aktifKriterId) return;
+  if(aktifKriterId === null) return;
   var yeniMetin = document.getElementById('crit-modal-input').value.trim();
-  if(yeniMetin === '') yeniMetin = 'Kriter ' + aktifKriterId; // Boş bırakırsa varsayılan
+  if(yeniMetin === '') yeniMetin = 'Kriter ' + (aktifKriterId + 1); 
   
-  // Tablodaki metni değiştir
+  DIN_CRITERIA[aktifKriterId].text = yeniMetin;
   document.getElementById('crit_name_' + aktifKriterId).innerText = yeniMetin;
-  
-  // Sayfa yenilenince kaybolmasın diye telefon hafızasına (Local Storage) kaydet
   localStorage.setItem(STORAGE_KEY + 'crit_name_' + aktifKriterId, yeniMetin);
   
   kapatCritModal();

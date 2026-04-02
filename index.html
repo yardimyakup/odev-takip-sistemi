@@ -1966,6 +1966,20 @@ function checkRehberDurum() {
     <label class="f-label">Ödev Adı</label>
     <input class="f-input" id="hw-modal-input" type="text" placeholder="Örn: Sayfa 45, Proje" maxlength="15" onkeydown="if(event.key === 'Enter') saveHwModal()">
     
+    <label class="f-label" style="margin-top:12px;">Ödev Büyüklüğü (Kutu Sayısı)</label>
+    <select class="f-select" id="hw-modal-weight" style="margin-bottom:4px;">
+      <option value="1">1 Kutu (Standart)</option>
+      <option value="2">2 Kutu</option>
+      <option value="3">3 Kutu</option>
+      <option value="4">4 Kutu</option>
+      <option value="5">5 Kutu</option>
+      <option value="6">6 Kutu</option>
+      <option value="7">7 Kutu</option>
+      <option value="8">8 Kutu</option>
+      <option value="9">9 Kutu</option>
+      <option value="10">10 Kutu</option>
+    </select>
+    <div class="branch-hint" style="margin-top: 0; margin-bottom: 0;">💡 Bu ödev için yan yana kaç adet artı/eksi kutucuğu açılacağını belirler.</div>
     <div class="sheet-actions" style="margin-top:16px;">
       <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-hw-edit')">İptal</button>
       <button class="btn-full btn-full-red" id="hw-modal-save-btn" onclick="saveHwModal()">Ödevi Ekle ✓</button>
@@ -2015,26 +2029,31 @@ function checkRehberDurum() {
   </div>
 </div>
 
-<div class="overlay" id="overlay-perf-criteria">
-  <div class="sheet">
-    <div class="sheet-header">
-      <div class="sheet-title">⚙️ Ölçek Kriterlerini Düzenle</div>
-      <button class="sheet-close" onclick="closeOverlay('overlay-perf-criteria')">✕</button>
+<div id="screen-perf-criteria" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="closePerfCriteriaScreen()">←</button>
+    <div style="flex:1;margin:0 10px;">
+      <div class="topbar-title">Ölçek Kriterleri</div>
+      <div class="topbar-sub" id="pc-sub-title">1. Performans</div>
     </div>
+    <button class="btn-sm btn-red" onclick="savePerfCriteria()" style="padding: 8px 16px; font-size: 13px; box-shadow:0 4px 12px rgba(224,32,32,0.3);">💾 Kaydet</button>
+  </div>
+
+  <div class="page-scroll" style="background: var(--bg); padding: 16px;">
     
-    <div style="font-size: 11px; color: var(--red-score); margin-bottom: 12px; font-weight: 700;">
-      ⚠️ Tüm ağırlıkların toplamı tam olarak 100 olmalıdır.
+    <div style="background:var(--card); border:1.5px solid var(--border); border-radius:var(--r); padding:16px; margin-bottom:20px; box-shadow:var(--shadow-sm);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="font-size:15px; font-weight:900;">Toplam Puan: <span id="pc-total-badge" style="color:var(--red); font-family:var(--font-mono); font-size:18px; margin-left:5px;">0 / 100</span></div>
+            <button class="btn-sm" style="background:var(--gray-100); color:var(--text); border:1.5px solid var(--border);" onclick="addPerfCriterion()">➕ Kriter Ekle</button>
+        </div>
+        <div style="font-size:12px; color:var(--gray-500); line-height:1.5; font-weight:500;">
+          💡 Öğrencileri değerlendireceğiniz kriterleri dilediğiniz gibi çoğaltıp azaltabilirsiniz. Tüm kriterlerin puan ağırlıkları toplamı tam <b>100</b> olmak zorundadır.
+        </div>
     </div>
 
-    <div id="perf-criteria-list" style="display:flex; flex-direction:column; gap:8px; max-height:400px; overflow-y:auto; padding-right:5px;">
-      </div>
-
+    <div id="perf-criteria-full-list" style="display:flex; flex-direction:column; gap:14px; padding-bottom: 60px;">
+        </div>
     
-    
- <div class="sheet-actions" style="margin-top:16px;">
-      <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-perf-criteria')">İptal</button>
-      <button class="btn-full btn-full-red" onclick="savePerfCriteria()">Kaydet ✓</button>
-    </div>
   </div>
 </div>
 
@@ -3966,7 +3985,6 @@ function renderHomeworkTable() {
   
   var html = '<thead><tr><th style="width:40px;">No</th><th class="stu-name-th">Ad Soyad</th>';
   hws.forEach(function(hw) {
-    // BURASI DEĞİŞTİ: Başlıklara tıklama (onclick) özelliği ve ikon eklendi
     html += '<th style="cursor:pointer;" onclick="editHomework(\'' + hw.id + '\')" title="Ödevi Düzenle veya Sil">' + hw.name + ' <span style="font-size:10px; opacity:0.6;">✏️</span></th>';
   });
   html += '</tr></thead><tbody>';
@@ -3974,15 +3992,54 @@ function renderHomeworkTable() {
   state.students.forEach(function(stu) {
     html += '<tr><td>' + stu.no + '</td><td class="stu-name-col">' + stu.ad + ' ' + stu.soyad + '</td>';
     hws.forEach(function(hw) {
-      var val = data[stu.no + '_' + hw.id] || '';
-      var displayVal = val;
-      if(val === '') displayVal = '·';
-      html += '<td><div class="hw-cell-btn" data-val="' + val + '" onclick="toggleHwCell(\'' + stu.no + '\', \'' + hw.id + '\')">' + displayVal + '</div></td>';
+      var weight = hw.weight || 1;
+      var valStr = data[stu.no + '_' + hw.id];
+      var valArr = [];
+      if (valStr && typeof valStr === 'string') valArr = valStr.split(',');
+      else if (Array.isArray(valStr)) valArr = valStr;
+      
+      // Belirtilen ağırlık kadar kutu oluştur
+      html += '<td style="padding:4px;"><div style="display:flex; gap:4px; justify-content:center; flex-wrap:nowrap;">';
+      for(var w = 0; w < weight; w++) {
+        var v = valArr[w] || '';
+        var displayVal = v === '' ? '·' : v;
+        html += '<div class="hw-cell-btn" style="width:30px; height:30px; font-size:13px; margin:0; flex-shrink:0;" data-val="' + v + '" onclick="toggleHwCell(\'' + stu.no + '\', \'' + hw.id + '\', ' + w + ')">' + displayVal + '</div>';
+      }
+      html += '</div></td>';
     });
     html += '</tr>';
   });
   html += '</tbody>';
   table.innerHTML = html;
+}
+
+function toggleHwCell(stuNo, hwId, subIndex) {
+  var clsId = state.currentClass.id;
+  var key = stuNo + '_' + hwId;
+  
+  var hw = state.hwList[clsId].find(function(h) { return h.id === hwId; });
+  var weight = hw ? (hw.weight || 1) : 1;
+  
+  var valStr = state.hwData[clsId][key];
+  var valArr = [];
+  if (valStr && typeof valStr === 'string') valArr = valStr.split(',');
+  else if (Array.isArray(valStr)) valArr = valStr;
+  
+  // Array'i olması gereken uzunluğa getir
+  while(valArr.length < weight) valArr.push('');
+  
+  var currentVal = valArr[subIndex] || '';
+  var nextVal = '';
+  if(currentVal === '') nextVal = '+';
+  else if(currentVal === '+') nextVal = '-';
+  else if(currentVal === '-') nextVal = 'G';
+  else if(currentVal === 'G') nextVal = '';
+  
+  valArr[subIndex] = nextVal;
+  state.hwData[clsId][key] = valArr.join(','); // Virgüle ayırarak kaydet (örn: +,,-)
+  
+  persist();
+  renderHomeworkTable();
 }
 
 
@@ -3995,8 +4052,9 @@ function addNewHomework() {
   state.editingHwId = null; // Yeni ekleme modu
   document.getElementById('hw-modal-title').textContent = '➕ Yeni Ödev Ekle';
   document.getElementById('hw-modal-input').value = '';
+  document.getElementById('hw-modal-weight').value = '1'; // YENİ
   document.getElementById('hw-modal-save-btn').textContent = 'Ödevi Ekle ✓';
-  document.getElementById('hw-modal-delete-section').style.display = 'none'; // Sil butonunu gizle
+  document.getElementById('hw-modal-delete-section').style.display = 'none';
   
   openOverlay('overlay-hw-edit');
 }
@@ -4010,29 +4068,30 @@ function editHomework(hwId) {
   state.editingHwId = hwId; // Düzenleme modu
   document.getElementById('hw-modal-title').textContent = '✏️ Ödev İşlemleri';
   document.getElementById('hw-modal-input').value = hw.name;
+  document.getElementById('hw-modal-weight').value = hw.weight || 1; // YENİ
   document.getElementById('hw-modal-save-btn').textContent = 'Güncelle ✓';
-  document.getElementById('hw-modal-delete-section').style.display = 'block'; // Sil butonunu göster
+  document.getElementById('hw-modal-delete-section').style.display = 'block';
   
   openOverlay('overlay-hw-edit');
 }
 
 function saveHwModal() {
   var name = document.getElementById('hw-modal-input').value.trim();
+  var weight = parseInt(document.getElementById('hw-modal-weight').value) || 1; // YENİ
   if (!name) { notify('Ödev adı boş olamaz!', 'error'); return; }
   
   var clsId = state.currentClass.id;
   if (!state.hwList[clsId]) state.hwList[clsId] = [];
   
   if (state.editingHwId) {
-    // GÜNCELLEME İŞLEMİ
     var hwIndex = state.hwList[clsId].findIndex(function(h) { return h.id === state.editingHwId; });
     if (hwIndex !== -1) {
       state.hwList[clsId][hwIndex].name = name.substring(0, 15);
-      notify('Ödev adı güncellendi! ✅', 'success');
+      state.hwList[clsId][hwIndex].weight = weight; // YENİ
+      notify('Ödev güncellendi! ✅', 'success');
     }
   } else {
-    // YENİ EKLEME İŞLEMİ
-    var newHw = { id: 'hw_' + Date.now(), name: name.substring(0, 15) };
+    var newHw = { id: 'hw_' + Date.now(), name: name.substring(0, 15), weight: weight }; // YENİ
     state.hwList[clsId].push(newHw);
     notify('Yeni ödev eklendi! ✅', 'success');
   }
@@ -4040,6 +4099,7 @@ function saveHwModal() {
   persist();
   renderHomeworkTable();
   closeOverlay('overlay-hw-edit');
+  syncTeacherProfile(); 
 }
 
 function deleteHwModal() {
@@ -4071,28 +4131,16 @@ function deleteHwModal() {
         renderHomeworkTable();
         closeOverlay('overlay-hw-edit');
         notify('Ödev tamamen silindi! 🗑️', 'info');
+        syncTeacherProfile(); // YENİ EKLENDİ
       }
     }
   );
 }
 
-function toggleHwCell(stuNo, hwId) {
-  var clsId = state.currentClass.id;
-  var key = stuNo + '_' + hwId;
-  var currentVal = state.hwData[clsId][key] || '';
-  
-  var nextVal = '';
-  if(currentVal === '') nextVal = '+';
-  else if(currentVal === '+') nextVal = '-';
-  else if(currentVal === '-') nextVal = 'G';
-  else if(currentVal === 'G') nextVal = '';
-  
-  state.hwData[clsId][key] = nextVal;
-  persist();
-  renderHomeworkTable();
-}
+
 
 /* KARELİ (IZGARALI) PDF YAZDIRMA */
+/* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
 /* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
 /* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
 /* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
@@ -4123,7 +4171,6 @@ function downloadHomeworkPDF(isCompact) {
   var availableWidth = 277 - noW - nameW; // A4 (297mm) - Sağ/Sol Boşluk(20mm)
   
   // ÖDEV SÜTUNLARININ GENİŞLİĞİNİ DİNAMİK HESAPLA (Boşlukları ferahlat)
-  // Çok az ödev varsa (örn: 1-2), kutular devasa olmasın diye en az 6 sütuna bölüyormuş gibi yapalım
   var displayHwCount = Math.max(hws.length, 6); 
   var colW = availableWidth / displayHwCount;
 
@@ -4177,8 +4224,13 @@ function downloadHomeworkPDF(isCompact) {
         // İsmi dar kutuya sığdırmak için akıllıca kırp (ÇOK UZUN OLMASINI ENGELLER)
         doc.setFontSize(hwLabelSize);
         var maxChar = Math.max(3, Math.floor(colW / 1.6)); 
+        
+        // Ödev ağırlığı 1'den büyükse başlıkta belirt (Örn: Proje (3))
+        var weight = hws[i].weight || 1;
         var shortName = clearTr(hws[i].name);
         if(shortName.length > maxChar) shortName = shortName.substring(0, maxChar) + '.';
+        if(weight > 1) shortName += ' (' + weight + ')';
+
         doc.text(shortName, x + colW/2, startY + (rowH/2) + 1.2, {align:'center'});
       }
   }
@@ -4211,11 +4263,18 @@ function downloadHomeworkPDF(isCompact) {
       var x = 10 + noW + nameW + (i * colW);
       doc.rect(x, currY, colW, rowH); 
       
-      var val = data[stu.no + '_' + hws[i].id] || '';
-      if(val) {
-        doc.setFontSize(fSizeVal);
+      var valStr = data[stu.no + '_' + hws[i].id];
+      var valArr = [];
+      if (valStr && typeof valStr === 'string') valArr = valStr.split(',');
+      else if (Array.isArray(valStr)) valArr = valStr;
+      
+      // Kutuları yan yana +++-- olarak tek metinde birleştir
+      var displayVal = valArr.filter(function(v){ return v !== ''; }).join(''); 
+      
+      if(displayVal) {
+        doc.setFontSize(fSizeVal - (displayVal.length > 2 ? 3 : 0)); // Çok karakter varsa fontu küçült
         doc.setFont('helvetica', 'bold');
-        doc.text(val, x + colW/2, currY + (rowH/2) + 1.5, {align:'center'});
+        doc.text(displayVal, x + colW/2, currY + (rowH/2) + 1.5, {align:'center'});
       }
     }
     currY += rowH;
@@ -4224,8 +4283,11 @@ function downloadHomeworkPDF(isCompact) {
   doc.save(clearTr(state.currentClass.name).replace(/[\/\\]/g, '') + "_Odev_Cizelgesi.pdf");
   notify((isCompact ? 'Tek Sayfa PDF' : 'Kareli Çizelge PDF') + ' İndirildi! ✅', 'success');
 }
+  
+ 
 
 
+/* ÖDEV SONUÇLARINI GOOGLE SHEETS'E GÖNDERME FONKSİYONU */
 /* ÖDEV SONUÇLARINI GOOGLE SHEETS'E GÖNDERME FONKSİYONU */
 async function saveHomeworkToCloud() {
   var clsId = state.currentClass.id;
@@ -4241,17 +4303,29 @@ async function saveHomeworkToCloud() {
   btn.innerHTML = '<span class="spin"></span> Bekleyin...';
   btn.disabled = true;
 
-  // Veriyi Google Sheets'in anlayacağı tablo mantığına (Düz diziye) çevir
+  // Veriyi Google Sheets'in anlayacağı tablo mantığına çevir
   var records = [];
   state.students.forEach(function(stu) {
     hws.forEach(function(hw) {
-      var val = data[stu.no + '_' + hw.id] || '';
-      if (val !== '') { // Sadece boş bırakılmayan (değer girilen) ödevleri gönder
+      var valStr = data[stu.no + '_' + hw.id];
+      var valArr = [];
+      
+      // Çoklu kutu verilerini ayrıştır
+      if (valStr && typeof valStr === 'string') valArr = valStr.split(',');
+      else if (Array.isArray(valStr)) valArr = valStr;
+
+      // Kutu içlerinde en az 1 tane değer girilmiş mi kontrol et
+      var hasData = valArr.some(function(v) { return v !== ''; });
+      
+      if (hasData) {
+        // Excel'de boş olanları alt çizgi "_" olarak göster ki anlaşılsın (Örn: + _ - )
+        var finalStr = valArr.map(function(v) { return v === '' ? '_' : v; }).join(' ');
+        
         records.push({
-          hwName: hw.name,
+          hwName: hw.name + (hw.weight > 1 ? ' (' + hw.weight + ' Kutulu)' : ''),
           no: stu.no,
           adSoyad: stu.ad + " " + stu.soyad,
-          status: val
+          status: finalStr
         });
       }
     });
@@ -4259,7 +4333,7 @@ async function saveHomeworkToCloud() {
 
   if (records.length === 0) {
     notify('Hiçbir öğrenciye ödev notu girmediniz!', 'error');
-    btn.innerHTML = '☁️ Buluta Kaydet';
+    btn.innerHTML = '☁️ Kaydet';
     btn.disabled = false;
     return;
   }
@@ -4281,12 +4355,15 @@ async function saveHomeworkToCloud() {
     
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     
+    // YENİ EKLENEN SATIR: Telefonun ve PC'nin aynı veriyi görebilmesi için JSON profilini de buluta eşitle!
+    await syncTeacherProfile();
+    
     notify('Ödevler Google Sheets\'e başarıyla kaydedildi! ✅', 'success', 3500);
   } catch(e) {
     notify('Kaydedilemedi! İnternet bağlantınızı kontrol edin.', 'error');
   }
   
-  btn.innerHTML = '☁️ Buluta Kaydet';
+  btn.innerHTML = '☁️ Kaydet';
   btn.disabled = false;
 }
 
@@ -4400,46 +4477,122 @@ function setPerfTotal(no, val) {
   renderPerfScaleTable();
 }
 
+// ════════════════════════════════════════════════════════
+// YENİ PERFORMANS KRİTERLERİ YÖNETİMİ
+// ════════════════════════════════════════════════════════
+var tempCriteriaList = []; // Düzenleme anında kullanılacak geçici liste
+
 function openPerfCriteriaEdit() {
   var key = state.currentClass.id + '_p' + state.activePerfIndex;
-  var criteria = state.perfCriteria[key];
-  var html = '';
   
-  criteria.forEach(function(c, i) {
-    html += '<div style="display:flex; gap:6px; margin-bottom:6px;">' +
-            '<div style="background:var(--red-score); color:white; width:24px; height:34px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; flex-shrink:0;">' + (i+1) + '</div>' +
-            '<input type="text" id="crit-txt-' + i + '" class="f-input" style="margin-bottom:0; flex:1; font-size:11px; padding:8px;" value="' + c.text + '">' +
-            '<input type="number" id="crit-max-' + i + '" class="f-input" style="margin-bottom:0; width:55px; text-align:center; font-weight:bold; color:var(--red); padding:8px;" value="' + c.max + '">' +
+  // Mevcut kriterleri geçici listeye klonluyoruz ki kaydetmeden çıkarsa bozulmasın
+  tempCriteriaList = JSON.parse(JSON.stringify(state.perfCriteria[key] || []));
+  
+  document.getElementById('pc-sub-title').textContent = state.activePerfIndex + '. Performans Kriterleri';
+  
+  showScreen('screen-perf-criteria');
+  renderFullCriteriaList();
+}
+
+function closePerfCriteriaScreen() {
+  showScreen('screen-perf-scale');
+}
+
+function renderFullCriteriaList() {
+  var container = document.getElementById('perf-criteria-full-list');
+  var html = '';
+  var totalMax = 0;
+  
+  tempCriteriaList.forEach(function(c, i) {
+    totalMax += (parseInt(c.max) || 0);
+    html += '<div style="background:var(--card); border:1.5px solid var(--border); border-radius:var(--r); padding:16px; box-shadow:var(--shadow-xs); display:flex; gap:12px; align-items:flex-start; transition: border-color 0.2s;">' +
+              
+              // Kriter Sıra Numarası (Sol Taraf)
+              '<div style="background:linear-gradient(135deg, var(--red-mid), var(--red)); color:#fff; width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:16px; flex-shrink:0; font-family:var(--font-mono); box-shadow:0 4px 10px rgba(224,32,32,0.25);">' + (i+1) + '</div>' +
+              
+              // İçerik ve Kontroller (Sağ Taraf)
+              '<div style="flex:1;">' +
+                  '<textarea id="crit-txt-full-' + i + '" class="f-input" style="min-height:75px; font-size:13px; font-weight:600; padding:12px; line-height:1.5; resize:vertical; margin-bottom:12px; font-family:var(--font);" placeholder="Kriter metnini buraya yazın..." onchange="updateTempCriterion(' + i + ', \'text\', this.value)">' + c.text + '</textarea>' +
+                  
+                  '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">' +
+                      '<div style="display:flex; align-items:center; gap:8px;">' +
+                          '<span style="font-size:11px; font-weight:800; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.5px;">Puan Ağırlığı:</span>' +
+                          '<input type="number" id="crit-max-full-' + i + '" class="f-input" style="width:80px; margin:0; padding:10px; text-align:center; font-size:16px; font-weight:900; color:var(--red); font-family:var(--font-mono);" min="1" max="100" value="' + c.max + '" onchange="updateTempCriterion(' + i + ', \'max\', this.value)" onkeyup="updateTempCriterion(' + i + ', \'max\', this.value)">' +
+                      '</div>' +
+                      '<button class="btn-sm" style="background:var(--red-score-bg); color:var(--red-score); border:1px solid var(--red-score-border); padding: 8px 14px;" onclick="removePerfCriterion(' + i + ')">🗑️ Sil</button>' +
+                  '</div>' +
+              '</div>' +
             '</div>';
   });
   
-  document.getElementById('perf-criteria-list').innerHTML = html;
-  openOverlay('overlay-perf-criteria');
+  if(tempCriteriaList.length === 0) {
+     html = '<div class="empty-state"><span class="empty-icon">📝</span><div class="empty-text">Bu ölçekte hiç kriter yok.<br>Lütfen yeni kriter ekleyin.</div></div>';
+  }
+  
+  container.innerHTML = html;
+  
+  // Toplam Puan Rozetini Güncelle (Anlık Renk Değişimi 100 olunca Yeşil olur)
+  var badge = document.getElementById('pc-total-badge');
+  badge.textContent = totalMax + ' / 100';
+  badge.style.color = totalMax === 100 ? 'var(--green)' : 'var(--red)';
+}
+
+function updateTempCriterion(index, field, value) {
+    if(field === 'max') {
+        tempCriteriaList[index].max = parseInt(value) || 0;
+        // Toplamı anlık güncelle
+        var totalMax = tempCriteriaList.reduce(function(sum, c) { return sum + (parseInt(c.max) || 0); }, 0);
+        var badge = document.getElementById('pc-total-badge');
+        badge.textContent = totalMax + ' / 100';
+        badge.style.color = totalMax === 100 ? 'var(--green)' : 'var(--red)';
+    } else {
+        tempCriteriaList[index].text = value;
+    }
+}
+
+function addPerfCriterion() {
+    tempCriteriaList.push({ text: "", max: 10 });
+    renderFullCriteriaList();
+    // Sayfanın en altına kaydır (Yeni eklenen kriteri görmesi için)
+    setTimeout(function() {
+        var el = document.getElementById('screen-perf-criteria').querySelector('.page-scroll');
+        el.scrollTop = el.scrollHeight;
+        // Yeni eklenen kriterin metin kutusuna odaklan
+        document.getElementById('crit-txt-full-' + (tempCriteriaList.length - 1)).focus();
+    }, 100);
+}
+
+function removePerfCriterion(index) {
+    showCustomConfirm('Kriteri Sil', 'Bu kriteri ölçekten silmek istediğinize emin misiniz?', '🗑️', function() {
+        tempCriteriaList.splice(index, 1);
+        renderFullCriteriaList();
+    });
 }
 
 function savePerfCriteria() {
-  var key = state.currentClass.id + '_p' + state.activePerfIndex;
-  var currentLen = state.perfCriteria[key].length; // O anki kritere göre uzunluk (5 veya 7)
-  var newCriteria = [];
   var totalMax = 0;
   
-  for(var i=0; i < currentLen; i++) {
-    var txt = document.getElementById('crit-txt-' + i).value.trim();
-    var mx = parseInt(document.getElementById('crit-max-' + i).value) || 0;
-    if(!txt) { notify((i+1) + '. kriter metni boş olamaz!', 'error'); return; }
-    newCriteria.push({ text: txt, max: mx });
-    totalMax += mx;
+  // Textarea içeriklerini son kez temp listeye al (Eğer kullanıcı yazıp blur yapmadan kaydete basarsa diye)
+  for(var i=0; i<tempCriteriaList.length; i++) {
+      var txt = document.getElementById('crit-txt-full-' + i).value.trim();
+      tempCriteriaList[i].text = txt; 
+      
+      if(!txt) { notify((i+1) + '. kriterin metni boş bırakılamaz!', 'error'); return; }
+      totalMax += (parseInt(tempCriteriaList[i].max) || 0);
   }
   
   if (totalMax !== 100) {
-    notify('Ağırlıkların toplamı 100 olmalıdır! (Şu an: ' + totalMax + ')', 'error', 3500);
+    notify('Ağırlıkların toplamı tam 100 olmalıdır! (Şu an: ' + totalMax + ')', 'error', 4000);
     return;
   }
   
-  state.perfCriteria[key] = newCriteria;
+  // Her şey doğruysa ana listeye geçir ve kaydet
+  var key = state.currentClass.id + '_p' + state.activePerfIndex;
+  state.perfCriteria[key] = JSON.parse(JSON.stringify(tempCriteriaList));
+  
   persist();
-  closeOverlay('overlay-perf-criteria');
-  notify('Kriterler kaydedildi! ✅', 'success');
+  notify('Ölçek kriterleri başarıyla kaydedildi! ✅', 'success');
+  closePerfCriteriaScreen(); // Ölçek sayfasına geri dön
 }
 
 // 🧮 OTOMATİK PUAN DAĞITMA MATEMATİĞİ
@@ -4642,7 +4795,7 @@ var payload = {
     records: records
   };
 
-  try {
+try {
     var resp = await fetch(API_URL, {
       method: 'POST', mode: 'cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -4651,7 +4804,10 @@ var payload = {
     
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     
-    notify(state.activePerfIndex + '. Performans notları buluta kaydedildi! ✅', 'success', 3500);
+    // YENİ EKLENEN SATIR: Telefonun okuyabilmesi için JSON profilini de buluta eşitle!
+    await syncTeacherProfile();
+    
+    notify('Ödevler Google Sheets\'e başarıyla kaydedildi! ✅', 'success', 3500);
   } catch(e) {
     notify('Kaydedilemedi! İnternet bağlantınızı kontrol edin.', 'error');
   }
