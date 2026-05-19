@@ -356,7 +356,7 @@ tbody tr:hover { background: #fdf2f1; }
 
 <script>
 // 🚀 ANA GOOGLE SHEETS LİNKİ
-const API_URL = "https://script.google.com/macros/s/AKfycby3srOAcuyDrFVkdFwl7gu6p3xvrnwXizye9lyi-vZdCSAtP9y7iCUZwXRXqz30z7cn/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzJ3CnqFPn4foPj1_FvNssR4AO9dNxJ1SDikZMsxemA5xEswWp0_1BTJuM2cIIayVI/exec";
 const STORAGE_KEY = 'vpDin_';
 
 // 🚀 5'Lİ KRİTER LİSTESİ (Buradan Kendi İstediğin Gibi Değiştirebilirsin)
@@ -659,8 +659,25 @@ function notify(msg, type, dur) {
   }, dur);
 }
 
+function revokeSessionToken(teacher, token) {
+  if (!teacher || !token) return;
+  var payload = JSON.stringify({ action: 'logout', teacher: teacher, token: token });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(API_URL, new Blob([payload], { type: 'text/plain;charset=utf-8' }));
+    } else {
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: payload
+      }).catch(function () {});
+    }
+  } catch (e) {}
+}
+
 function cikisYap() {
   if (!confirm('Çıkış yapmak istiyor musunuz?')) return;
+  revokeSessionToken(localStorage.getItem('vpAL3_teacher'), localStorage.getItem('vpAL3_token'));
   localStorage.removeItem('vpAL3_teacher');
   localStorage.removeItem('vpAL3_token');
   localStorage.removeItem('vpAL3_branch');
