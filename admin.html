@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VPAL Admin — PDF Aktarım v5</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<style>
+  :root {
+    --red:#e02020;--red-dark:#b81818;--red-light:#fff5f5;--red-mid:#ffd5d5;
+    --green:#1a8a4a;--green-bg:#f0faf5;
+    --orange:#e07020;--orange-bg:#fff8f0;
+    --blue:#1a62c0;--blue-bg:#f0f6ff;
+    --bg:#f4f5f7;--white:#fff;
+    --border:#e5e7eb;--gray:#9ca3af;--gray-dark:#4b5563;--text:#111827;
+    --shadow:0 2px 12px rgba(0,0,0,0.08);--shadow-lg:0 6px 30px rgba(0,0,0,0.12);
+    --r:10px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif;}
+  body{background:var(--bg);color:var(--text);min-height:100vh;padding:20px;}
+  .topbar{background:var(--red);color:#fff;border-radius:var(--r) var(--r) 0 0;padding:18px 24px;display:flex;align-items:center;gap:14px;max-width:960px;margin:0 auto;box-shadow:0 4px 16px rgba(224,32,32,0.3);}
+  .topbar-badge{width:44px;height:44px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:var(--red);flex-shrink:0;}
+  .topbar-title{font-size:17px;font-weight:800;}
+  .topbar-sub{font-size:11px;opacity:0.75;margin-top:1px;}
+  .card{background:var(--white);border-radius:0 0 var(--r) var(--r);border:1px solid var(--border);border-top:none;max-width:960px;margin:0 auto;box-shadow:var(--shadow);}
+  .card-body{padding:24px;}
+  .upload-zone{border:2.5px dashed var(--red-mid);border-radius:var(--r);padding:48px 20px;text-align:center;cursor:pointer;background:var(--red-light);transition:all 0.2s;position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--red);background:#fff0f0;}
+  .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{font-size:42px;margin-bottom:10px;}
+  .upload-text{font-size:15px;font-weight:700;color:var(--red);margin-bottom:4px;}
+  .upload-hint{font-size:12px;color:var(--gray-dark);}
+  .progress-wrap{margin-top:16px;display:none;}
+  .progress-label{font-size:12px;font-weight:700;color:var(--gray-dark);margin-bottom:6px;display:flex;justify-content:space-between;}
+  .progress-bar-bg{background:var(--red-mid);border-radius:20px;height:10px;overflow:hidden;}
+  .progress-bar{background:var(--red);height:100%;border-radius:20px;transition:width 0.3s;width:0%;}
+  .alert{border-radius:var(--r);padding:13px 16px;font-size:13px;font-weight:600;margin-top:16px;align-items:flex-start;gap:10px;display:none;}
+  .alert.show{display:flex;}
+  .alert-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+  .alert.info{background:var(--blue-bg);color:var(--blue);border:1px solid #c3d9f9;}
+  .alert.success{background:var(--green-bg);color:var(--green);border:1px solid #a8d9be;}
+  .alert.error{background:var(--red-light);color:var(--red-dark);border:1px solid var(--red-mid);}
+  .alert.warn{background:var(--orange-bg);color:var(--orange);border:1px solid #ffd5a0;}
+  .stats-row{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+  .stat-box{flex:1;min-width:120px;background:var(--bg);border-radius:var(--r);padding:14px 16px;border:1.5px solid var(--border);text-align:center;}
+  .stat-box.highlight{background:var(--red-light);border-color:var(--red-mid);}
+  .stat-n{font-size:28px;font-weight:900;color:var(--red);display:block;line-height:1;}
+  .stat-l{font-size:11px;font-weight:700;color:var(--gray-dark);margin-top:4px;display:block;text-transform:uppercase;}
+  #results-section{display:none;margin-top:24px;}
+  .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+  .results-title{font-size:16px;font-weight:800;color:var(--text);}
+  .search-input{border:1.5px solid var(--border);border-radius:var(--r);padding:8px 12px;font-size:13px;outline:none;background:var(--bg);min-width:180px;}
+  .search-input:focus{border-color:var(--red);background:#fff;}
+  .classes-wrap{max-height:500px;overflow-y:auto;padding-right:4px;}
+  .cls-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden;}
+  .cls-head{background:linear-gradient(90deg,var(--red-light) 0%,#fff 100%);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:1px solid var(--red-mid);}
+  .cls-head:hover{background:var(--red-light);}
+  .cls-head-name{font-size:15px;font-weight:800;color:var(--red);}
+  .cls-head-right{display:flex;align-items:center;gap:10px;}
+  .cls-badge{background:var(--red);color:#fff;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800;}
+  .cls-toggle{color:var(--gray);font-size:14px;}
+  .cls-body{padding:12px 16px;display:none;}
+  .cls-body.open{display:block;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead th{background:var(--bg);color:var(--gray-dark);font-weight:700;padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;text-transform:uppercase;}
+  tbody tr{border-bottom:1px solid var(--border);}
+  tbody tr:hover{background:var(--bg);}
+  tbody tr:last-child{border-bottom:none;}
+  td{padding:7px 10px;}
+  td.sno{color:var(--gray);font-weight:700;width:36px;}
+  td.ono{color:var(--blue);font-weight:700;}
+  td.name{font-weight:700;}
+  td.surname{font-weight:800;}
+  .warn-row{background:#fffbf0 !important;}
+  .warn-badge{background:var(--orange);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;}
+  .btn-row{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+  .btn{flex:1;min-width:160px;padding:14px 20px;border:none;border-radius:var(--r);font-size:14px;font-weight:800;cursor:pointer;transition:transform 0.1s;}
+  .btn:active{transform:scale(0.97);}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .btn-primary{background:var(--red);color:#fff;box-shadow:0 3px 12px rgba(224,32,32,0.25);}
+  .btn-primary:hover:not(:disabled){background:var(--red-dark);}
+  .btn-secondary{background:var(--bg);color:var(--gray-dark);border:1.5px solid var(--border);}
+  .log-wrap{margin-top:20px;display:none;}
+  .log-title{font-size:12px;font-weight:800;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;}
+  .log-box{background:#1a1a2e;color:#a8e6cf;border-radius:var(--r);padding:14px 16px;font-family:'Courier New',monospace;font-size:11px;max-height:300px;overflow-y:auto;line-height:1.7;}
+  .log-box .log-err{color:#ff8a80;}
+  .log-box .log-ok{color:#a8e6cf;}
+  .log-box .log-info{color:#90caf9;}
+  .log-box .log-warn{color:#ffe082;}
+  .log-box .log-debug{color:#ce93d8;}
+  .send-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;}
+  .send-overlay.show{display:flex;}
+  .send-box{background:#fff;border-radius:16px;padding:32px 40px;text-align:center;box-shadow:var(--shadow-lg);min-width:280px;}
+  .send-spinner{width:52px;height:52px;border:5px solid var(--red-mid);border-top-color:var(--red);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .send-text{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;}
+  .send-sub{font-size:12px;color:var(--gray);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-badge">VP</div>
+  <div>
+    <div class="topbar-title">Vefa Poyraz A.L. — Admin Paneli</div>
+    <div class="topbar-sub">E-Okul PDF → Google Sheets Aktarım Sistemi v5</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept="application/pdf" multiple>
+      <div class="upload-icon">📄</div>
+      <div class="upload-text">E-Okul PDF Dosyasını Buraya Sürükleyin veya Tıklayın</div>
+      <div class="upload-hint">Birden fazla PDF seçebilirsiniz — tüm sayfalar otomatik taranır</div>
+    </div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-label">
+        <span id="progress-text">Hazırlanıyor...</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar" id="progress-bar"></div></div>
+    </div>
+
+    <div class="alert info"    id="alert-info">   <span class="alert-icon">⏳</span><span id="alert-info-msg"></span></div>
+    <div class="alert success" id="alert-success"><span class="alert-icon">✅</span><span id="alert-success-msg"></span></div>
+    <div class="alert error"   id="alert-error">  <span class="alert-icon">❌</span><span id="alert-error-msg"></span></div>
+    <div class="alert warn"    id="alert-warn">   <span class="alert-icon">⚠️</span><span id="alert-warn-msg"></span></div>
+
+    <div class="stats-row" id="stats-row" style="display:none;">
+      <div class="stat-box highlight"><span class="stat-n" id="st-classes">0</span><span class="stat-l">Sınıf</span></div>
+      <div class="stat-box highlight"><span class="stat-n" id="st-students">0</span><span class="stat-l">Öğrenci</span></div>
+      <div class="stat-box"><span class="stat-n" id="st-pages">0</span><span class="stat-l">Sayfa</span></div>
+      <div class="stat-box"><span class="stat-n" id="st-warn">0</span><span class="stat-l">Uyarı</span></div>
+    </div>
+
+    <div id="results-section">
+      <div class="results-header">
+        <div class="results-title">📋 Ayıklanan Öğrenci Verileri (Önizleme)</div>
+        <input type="text" class="search-input" id="search-input" placeholder="🔍 Öğrenci veya sınıf ara...">
+      </div>
+      <div class="classes-wrap" id="classes-wrap"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-send" onclick="sendToSheets()">📤 Google Sheets'e Aktar</button>
+        <button class="btn btn-secondary" onclick="resetAll()">🔄 Sıfırla / Yeni PDF</button>
+      </div>
+      <div class="log-wrap" id="log-wrap">
+        <div class="log-title">İşlem Kaydı</div>
+        <div class="log-box" id="log-box"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="send-overlay" id="send-overlay">
+  <div class="send-box">
+    <div class="send-spinner"></div>
+    <div class="send-text" id="send-text">Google Sheets'e gönderiliyor...</div>
+    <div class="send-sub" id="send-sub">Lütfen sayfayı kapatmayın</div>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyubGSG3rAfR18MlCCgUXnLub2eNIYbt-jlLYFpoFy0_LcFTS3GBpXNmgmwi2VzTK4r/exec";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+let extractedClasses = [];
+let totalWarnings = 0;
+
+// ── UI ──
+function showAlert(type, msg) {
+  ['info','success','error','warn'].forEach(t => {
+    const el = document.getElementById('alert-'+t);
+    if (el) el.classList.remove('show');
+  });
+  const msgEl = document.getElementById('alert-'+type+'-msg');
+  const alertEl = document.getElementById('alert-'+type);
+  if (msgEl) msgEl.innerHTML = msg;
+  if (alertEl) alertEl.classList.add('show');
+}
+function hideAlerts() {
+  ['info','success','error','warn'].forEach(t => {
+    const el = document.getElementById('alert-'+t);
+    if (el) el.classList.remove('show');
+  });
+}
+function setProgress(pct, label) {
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-text').textContent = label;
+}
+function hideProgress() {
+  document.getElementById('progress-wrap').style.display = 'none';
+}
+function log(msg, type = 'info') {
+  document.getElementById('log-wrap').style.display = 'block';
+  const box = document.getElementById('log-box');
+  const line = document.createElement('div');
+  line.className = 'log-' + type;
+  line.textContent = '[' + new Date().toLocaleTimeString('tr-TR') + '] ' + msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── DRAG & DROP ──
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+  if (files.length) processFiles(files);
+  else showAlert('error', 'Lütfen PDF dosyası yükleyin.');
+});
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files.length) processFiles(Array.from(e.target.files));
+});
+
+// ════════════════════════════════════════════════
+// SINIF ADI ÇIKARMA
+// PDF formatı: "AL -  9. Sınıf / C Şubesi (ALANI YOK) Sınıf Listesi"
+// Hedef çıktı: "9/C"
+// ════════════════════════════════════════════════
+function extractClassNameFromItems(items) {
+  // Tüm itemları boşlukla birleştir
+  const allText = items.map(i => i.text).join(' ');
+  log('  [PARSE] Sayfa metni başı: ' + allText.substring(0, 180), 'info');
+
+  // Birleşik metin üzerinde dene
+  let result = parseClassName(allText);
+  if (result) return result;
+
+  // İlk 30 item arasında komşuları birleştirerek dene
+  const top = items.slice(0, 30);
+  for (let i = 0; i < top.length - 1; i++) {
+    const combo = top[i].text + ' ' + top[i+1].text;
+    result = parseClassName(combo);
+    if (result) return result;
+    if (i < top.length - 2) {
+      result = parseClassName(combo + ' ' + top[i+2].text);
+      if (result) return result;
+    }
+  }
+
+  // Her item tek tek
+  for (const item of top) {
+    result = parseClassName(item.text);
+    if (result) return result;
+  }
+
+  return null;
+}
+
+function parseClassName(text) {
+  if (!text || text.trim().length === 0) return null;
+
+  // ── Ana pattern: "9. Sınıf / C" veya "9.Sınıf/C" vb.
+  // Türkçe karakterlerin encoding bozukluklarını tolere et:
+  //   Sınıf → S + (ı|i|İ|I) + n + (ı|i|İ|I) + f
+  //   Şubesi → herhangi bir şey sonrasında harf
+  // ──
+  // Önce her şeyi normalize et: ı→i, İ→I, Ş→S, ş→s vb.
+  const norm = text
+    .replace(/\u0131/g, 'i')   // ı → i
+    .replace(/\u0130/g, 'I')   // İ → I
+    .replace(/\u015f/g, 's')   // ş → s
+    .replace(/\u015e/g, 'S')   // Ş → S
+    .replace(/\u011f/g, 'g')   // ğ → g
+    .replace(/\u011e/g, 'G')   // Ğ → G
+    .replace(/\u00fc/g, 'u')   // ü → u
+    .replace(/\u00dc/g, 'U')   // Ü → U
+    .replace(/\u00f6/g, 'o')   // ö → o
+    .replace(/\u00d6/g, 'O')   // Ö → O
+    .replace(/\u00e7/g, 'c')   // ç → c
+    .replace(/\u00c7/g, 'C');  // Ç → C
+
+  // Normalize metin üzerinde regex:
+  // "9. Sinif / C" veya "9.Sinif/C" veya "9 . Sinif / C"
+  // Şube harfi: tek büyük harf (A-Z veya İ için I)
+  const m = norm.match(/(\d{1,2})\s*\.\s*[Ss][Ii][Nn][Ii][Ff]\s*\/\s*([A-Z])/);
+  if (m) {
+    const grade = m[1];
+    const section = m[2].toUpperCase();
+    log('  [OK] Sınıf bulundu: ' + grade + '/' + section, 'ok');
+    return grade + '/' + section;
+  }
+
+  // Orijinal metin üzerinde de dene (normalize olmadan)
+  // "9. Sınıf / C" - Türkçe ı ve ş olduğu gibi
+  const m2 = text.match(/(\d{1,2})\s*\.\s*S.{1,3}n.{1,3}f\s*\/\s*([A-ZÇĞİÖŞÜ])/);
+  if (m2) {
+    const grade = m2[1];
+    const section = m2[2].toUpperCase();
+    log('  [OK] Sınıf bulundu (m2): ' + grade + '/' + section, 'ok');
+    return grade + '/' + section;
+  }
+
+  return null;
+}
+
+// ════════════════════════════════════════════════
+// PDF İŞLEME
+// ════════════════════════════════════════════════
+async function processFiles(files) {
+  try {
+    extractedClasses = [];
+    totalWarnings = 0;
+    hideAlerts();
+    hideProgress();
+    document.getElementById('results-section').style.display = 'none';
+    document.getElementById('stats-row').style.display = 'none';
+    document.getElementById('log-wrap').style.display = 'none';
+    document.getElementById('log-box').innerHTML = '';
+
+    showAlert('info', '<b>' + files.length + '</b> PDF dosyası işleniyor...');
+    setProgress(5, 'Dosyalar yükleniyor...');
+
+    let totalPages = 0;
+
+    for (let fi = 0; fi < files.length; fi++) {
+      const file = files[fi];
+      log('PDF işleniyor: ' + file.name, 'info');
+
+      const buffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+      totalPages += pdf.numPages;
+
+      for (let pi = 1; pi <= pdf.numPages; pi++) {
+        const pct = Math.round(10 + ((fi * pdf.numPages + pi) / (files.length * pdf.numPages)) * 80);
+        setProgress(pct, 'Sayfa ' + pi + '/' + pdf.numPages + ' okunuyor...');
+
+        const page = await pdf.getPage(pi);
+        const content = await page.getTextContent();
+
+        const rawItems = content.items.map(item => ({
+          text: item.str || '',
+          x: item.transform[4],
+          y: item.transform[5],
+          w: item.width || 0,
+          h: item.height || 0,
+        }));
+
+        try {
+          const result = parsePage(rawItems, pi);
+          if (result && result.students && result.students.length > 0) {
+            const existing = extractedClasses.find(c => c.className === result.className);
+            if (existing) {
+              existing.students.push(...result.students);
+              log('✓ ' + result.className + ': +' + result.students.length + ' öğrenci (sayfa ' + pi + ')', 'ok');
+            } else {
+              extractedClasses.push(result);
+              log('✓ ' + result.className + ': ' + result.students.length + ' öğrenci', 'ok');
+            }
+          } else {
+            log('Sayfa ' + pi + ': Öğrenci verisi bulunamadı', 'warn');
+          }
+        } catch (pageErr) {
+          log('Sayfa ' + pi + ' hata: ' + pageErr.message, 'err');
+        }
+      }
+    }
+
+    setProgress(100, 'Tamamlandı!');
+    setTimeout(hideProgress, 800);
+
+    if (extractedClasses.length === 0) {
+      showAlert('error', 'Hiçbir sayfada öğrenci listesi bulunamadı.');
+      return;
+    }
+
+    // Sırala: 9/A, 9/B ... 10/A ...
+    extractedClasses.sort((a, b) => {
+      const parse = cn => {
+        const m = cn.match(/^(\d+)\/(.+)$/);
+        return m ? { g: parseInt(m[1]), s: m[2] } : { g: 99, s: 'Z' };
+      };
+      const pa = parse(a.className), pb = parse(b.className);
+      if (pa.g !== pb.g) return pa.g - pb.g;
+      return pa.s.localeCompare(pb.s, 'tr');
+    });
+
+    const totalStudents = extractedClasses.reduce((s, c) => s + c.students.length, 0);
+    log('TOPLAM: ' + extractedClasses.length + ' sınıf, ' + totalStudents + ' öğrenci', 'ok');
+
+    document.getElementById('st-classes').textContent = extractedClasses.length;
+    document.getElementById('st-students').textContent = totalStudents;
+    document.getElementById('st-pages').textContent = totalPages;
+    document.getElementById('st-warn').textContent = totalWarnings;
+    document.getElementById('stats-row').style.display = 'flex';
+
+    if (totalWarnings > 0) {
+      showAlert('warn', totalStudents + ' öğrenci bulundu, <b>' + totalWarnings + ' satırda</b> uyarı var.');
+    } else {
+      showAlert('success', '<b>' + totalStudents + ' öğrenci</b> başarıyla ayıklandı — ' + extractedClasses.length + ' sınıf.');
+    }
+
+    renderResults(extractedClasses, '');
+    document.getElementById('results-section').style.display = 'block';
+
+  } catch (err) {
+    hideProgress();
+    showAlert('error', 'Genel hata: <b>' + err.message + '</b>');
+    log('GENEL HATA: ' + err.message, 'err');
+    console.error(err);
+  }
+}
+
+// ════════════════════════════════════════════════
+// CORE PARSER
+// ════════════════════════════════════════════════
+function parsePage(rawItems, pageNum) {
+  const items = rawItems.filter(i => i.text.trim() !== '');
+  if (items.length < 5) return null;
+
+  // ── Sınıf adı ──
+  let className = extractClassNameFromItems(items);
+  if (!className) {
+    log('  [WARN] Sayfa ' + pageNum + ': sınıf adı bulunamadı → Sayfa_' + pageNum, 'warn');
+    className = 'Sayfa_' + pageNum;
+  } else {
+    log('  Sınıf adı bulundu: ' + className, 'ok');
+  }
+
+  // ── Satırlara grupla ──
+  const rows = groupByY(items, 4);
+
+  // ── Başlık satırını bul ──
+  let headerRowIndex = -1;
+  let headerRow = null;
+  for (let i = 0; i < rows.length; i++) {
+    const joined = rows[i].map(it => it.text.trim()).join(' ').toLowerCase();
+    if ((joined.includes('s.no') || joined.includes('s no') || joined.includes('sıra')) &&
+        (joined.includes('ad') || joined.includes('soyad') || joined.includes('öğrenci'))) {
+      headerRow = rows[i];
+      headerRowIndex = i;
+      break;
+    }
+  }
+
+  const cols = headerRow ? inferColumnsFromHeader(headerRow) : null;
+  const dataRows = headerRowIndex >= 0 ? rows.slice(headerRowIndex + 1) : rows;
+  const students = [];
+
+  for (const row of dataRows) {
+    try {
+      const s = cols ? parseRowWithCols(row, cols) : parseRowFallback(row);
+      if (s) {
+        if (!s.no || !s.ad || !s.soyad) { totalWarnings++; s._warn = true; }
+        students.push(s);
+      }
+    } catch (e) { /* satır hatasını geç */ }
+  }
+
+  if (students.length === 0) return null;
+  return { className, students };
+}
+
+// ── Y grupla ──
+function groupByY(items, tol = 4) {
+  const sorted = [...items].sort((a, b) => b.y - a.y);
+  const rows = [];
+  let cur = [];
+  for (const item of sorted) {
+    if (cur.length === 0) { cur.push(item); continue; }
+    if (Math.abs(item.y - cur[0].y) <= tol) {
+      cur.push(item);
+    } else {
+      if (cur.length) rows.push([...cur].sort((a, b) => a.x - b.x));
+      cur = [item];
+    }
+  }
+  if (cur.length) rows.push([...cur].sort((a, b) => a.x - b.x));
+  return rows;
+}
+
+// ── Header'dan sütun sınırları ──
+function inferColumnsFromHeader(headerRow) {
+  const colMap = {};
+  for (const item of headerRow) {
+    const t = item.text.trim().toLowerCase()
+      .replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u')
+      .replace(/ö/g,'o').replace(/ç/g,'c')
+      .replace(/ı/g,'i').replace(/İ/g,'i').replace(/î/g,'i');
+
+    if (t === 's.no' || t === 's.no.' || t === 'sno' || t === 's no') {
+      if (colMap.sno === undefined) colMap.sno = item.x;
+    } else if (t.includes('ogrenci') || (t === 'no' && colMap.ono === undefined)) {
+      colMap.ono = item.x;
+    } else if (t === 'adi' || t === 'ad') {
+      colMap.ad = item.x;
+    } else if (t === 'soyadi' || t === 'soyad') {
+      colMap.soyad = item.x;
+    } else if (t.includes('cinsiyet')) {
+      colMap.cinsiyet = item.x;
+    }
+  }
+
+  if (colMap.ono === undefined && colMap.sno !== undefined) {
+    const afterSno = headerRow.filter(i => i.x > (colMap.sno || 0) + 20);
+    if (afterSno.length > 0) colMap.ono = afterSno[0].x;
+  }
+
+  const xs = Object.values(colMap).filter(x => x !== undefined).sort((a, b) => a - b);
+  const range = key => {
+    const x = colMap[key];
+    if (x === undefined) return null;
+    const idx = xs.indexOf(x);
+    return { xMin: x - 12, xMax: idx < xs.length - 1 ? xs[idx + 1] - 4 : x + 250 };
+  };
+
+  return {
+    sno: range('sno'), ono: range('ono'),
+    ad: range('ad'), soyad: range('soyad'), cinsiyet: range('cinsiyet')
+  };
+}
+
+// ── Sütun aralığına göre parse ──
+// ── Sütun aralığına göre parse ──
+// ── Sütun aralığına göre parse ──
+function parseRowWithCols(row, cols) {
+  const getInRange = (range) => {
+    if (!range) return '';
+    const itemsInRange = row.filter(i => i.x >= range.xMin && i.x <= range.xMax);
+    // Artık Türkçe tahmin etmek yerine, piksel mesafesine göre birleştiren yeni sistemi çağırıyoruz
+    return mergeTextItems(itemsInRange);
+  };
+
+  const sno = parseInt(getInRange(cols.sno));
+  if (isNaN(sno) || sno < 1 || sno > 99) return null;
+
+  const ono = parseInt(getInRange(cols.ono).replace(/\s/g, '')) || 0;
+  const ad = getInRange(cols.ad).trim();
+  const soyad = getInRange(cols.soyad).trim();
+  const cins = normalizeCinsiyet(getInRange(cols.cinsiyet));
+
+  if (!ad && !soyad) return null;
+  return { sno, no: ono, ad, soyad, cinsiyet: cins };
+}
+
+// ── Fallback parse ──
+function parseRowFallback(row) {
+  const fullText = mergeTextItems(row);
+  if (!fullText) return null;
+
+  const parts = fullText.split(' ').filter(Boolean);
+  if (parts.length < 3) return null;
+
+  const sno = parseInt(parts[0]);
+  if (isNaN(sno) || sno < 1 || sno > 99) return null;
+
+  const ono = parseInt(parts[1]);
+  if (isNaN(ono)) return null;
+
+  const rest = parts.slice(2);
+  const gIdx = rest.findIndex(t => /^(Erkek|Kız|Kiz|ERKEK|KIZ|E|K)$/i.test(t));
+  const nameParts = gIdx >= 0 ? rest.slice(0, gIdx) : rest;
+  const cinsiyet = gIdx >= 0 ? rest[gIdx] : '';
+
+  const clean = nameParts.filter(p => !/^\d{4,}$/.test(p) && !/\d{2}[.\/]\d{2}[.\/]\d{4}/.test(p));
+  if (clean.length === 0) return null;
+
+  const soyad = clean.length > 1 ? clean[clean.length - 1] : '';
+  const ad = clean.length > 1 ? clean.slice(0, -1).join(' ') : clean[0];
+
+  return { sno, no: ono, ad, soyad, cinsiyet: normalizeCinsiyet(cinsiyet) };
+}
+
+// ── PDF Harf Birleştirici (YENİ AKILLI MESAFE SİSTEMİ) ──
+function mergeTextItems(items) {
+  if (!items || items.length === 0) return '';
+  const sorted = [...items].sort((a, b) => a.x - b.x);
+  let result = '';
+  let lastItem = null;
+
+  for (let i = 0; i < sorted.length; i++) {
+    const curr = sorted[i];
+    if (!curr.text.trim()) continue;
+    
+    if (result === '') {
+      result = curr.text.trim();
+      lastItem = curr;
+    } else {
+      // Önceki kelime ile yenisinin başladığı yer arasındaki "Fiziksel Piksel" boşluğunu ölç
+      const gap = curr.x - (lastItem.x + lastItem.w);
+      
+      // E-Okul'da normal boşluklar 3 pikselden büyüktür, harf bölünmeleri ise daha küçüktür.
+      if (gap > 3.0) {
+        result += ' ' + curr.text.trim(); // Uzaksa ayrı kelime (boşluk koy)
+      } else {
+        result += curr.text.trim(); // Yakınsa aynı kelime (boşluksuz yapıştır)
+      }
+      lastItem = curr;
+    }
+  }
+  return result;
+}
+
+// ── Cinsiyet Normalize ──sendToSheets
+function normalizeCinsiyet(c) {
+  if (!c) return '';
+  c = c.trim();
+  if (/erkek/i.test(c) || c === 'E') return 'Erkek';
+  if (/k[ıi]z/i.test(c) || c === 'K') return 'Kız';
+  return c;
+}
+
+
+
+// ════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════
+function renderResults(classes, filter = '') {
+  const wrap = document.getElementById('classes-wrap');
+  const lf = filter.toLowerCase();
+
+  if (!classes || !classes.length) {
+    wrap.innerHTML = '<div style="padding:30px;text-align:center;color:var(--gray)">Veri yok</div>';
+    return;
+  }
+
+  let html = '';
+  for (let ci = 0; ci < classes.length; ci++) {
+    const cls = classes[ci];
+    const filtered = cls.students.filter(s =>
+      !lf ||
+      (s.ad || '').toLowerCase().includes(lf) ||
+      (s.soyad || '').toLowerCase().includes(lf) ||
+      String(s.no).includes(lf) ||
+      cls.className.toLowerCase().includes(lf)
+    );
+    if (!filtered.length && filter) continue;
+
+    const rows = filtered.map(s => `
+      <tr class="${s._warn ? 'warn-row' : ''}">
+        <td class="sno">${s.sno}</td>
+        <td class="ono">${s.no || '<span style="color:var(--gray)">?</span>'}</td>
+        <td class="name">${s.ad || '<span style="color:var(--orange)">BOŞ</span>'}</td>
+        <td class="surname">${s.soyad || '<span style="color:var(--orange)">BOŞ</span>'}</td>
+        <td>${s.cinsiyet || ''}</td>
+        <td>${s._warn ? '<span class="warn-badge">⚠ Eksik</span>' : ''}</td>
+      </tr>`).join('');
+
+    html += `
+      <div class="cls-card">
+        <div class="cls-head" onclick="toggleClass(${ci})">
+          <div class="cls-head-name">📚 ${cls.className} Sınıfı</div>
+          <div class="cls-head-right">
+            <span class="cls-badge">${filtered.length} öğrenci</span>
+            <span class="cls-toggle" id="toggle-${ci}">▼</span>
+          </div>
+        </div>
+        <div class="cls-body" id="cls-body-${ci}">
+          <table>
+            <thead><tr><th>S.No</th><th>Öğrenci No</th><th>Ad</th><th>Soyad</th><th>Cinsiyet</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  wrap.innerHTML = html || '<div style="padding:30px;text-align:center;color:var(--gray)">Sonuç bulunamadı</div>';
+}
+
+function toggleClass(ci) {
+  const body = document.getElementById('cls-body-' + ci);
+  const tog = document.getElementById('toggle-' + ci);
+  if (!body || !tog) return;
+  body.classList.toggle('open');
+  tog.textContent = body.classList.contains('open') ? '▲' : '▼';
+}
+
+document.getElementById('search-input').addEventListener('input', function () {
+  renderResults(extractedClasses, this.value);
+});
+
+// ════════════════════════════════════════════════
+// GOOGLE SHEETS
+// ════════════════════════════════════════════════
+async function sendToSheets() {
+  try {
+    if (!extractedClasses.length) { showAlert('error', 'Gönderilecek veri yok.'); return; }
+
+    const overlay = document.getElementById('send-overlay');
+    const btn = document.getElementById('btn-send');
+    overlay.classList.add('show');
+    btn.disabled = true;
+
+    const totalStudents = extractedClasses.reduce((s, c) => s + c.students.length, 0);
+    document.getElementById('send-text').textContent = totalStudents + ' öğrenci gönderiliyor...';
+
+    const payload = {
+      action: "bulkImport",
+      data: extractedClasses.map(cls => ({
+        className: cls.className,
+        students: cls.students.map(s => ({
+          no: s.no, ad: s.ad, soyad: s.soyad, cinsiyet: s.cinsiyet, sno: s.sno
+        }))
+      }))
+    };
+
+await fetch(API_URL, {
+      method: 'POST',
+      mode: 'no-cors', // no-cors olarak değiştirildi
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+
+    overlay.classList.remove('show');
+    btn.disabled = false;
+    showAlert('success', '✅ <b>' + totalStudents + ' öğrenci</b> gönderildi! Google Sheets\'i kontrol edin.');
+    log('✅ Tamamlandı: ' + totalStudents + ' öğrenci', 'ok');
+
+  } catch (err) {
+    document.getElementById('send-overlay').classList.remove('show');
+    document.getElementById('btn-send').disabled = false;
+    showAlert('error', 'Hata: <b>' + err.message + '</b>');
+    log('HATA: ' + err.message, 'err');
+  }
+}
+
+// ── SIFIRLA ──
+function resetAll() {
+  extractedClasses = [];
+  totalWarnings = 0;
+  ['results-section', 'stats-row', 'progress-wrap', 'log-wrap'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  document.getElementById('log-box').innerHTML = '';
+  document.getElementById('file-input').value = '';
+  document.getElementById('search-input').value = '';
+  document.getElementById('classes-wrap').innerHTML = '';
+  hideAlerts();
+}
+</script>
+</body>
+</html>
