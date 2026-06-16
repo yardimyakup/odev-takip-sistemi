@@ -1675,8 +1675,8 @@ body.dark .mult-bar { background:var(--gray-100); }
     
     <div id="form-giris">
       <div style="margin-bottom: 14px;">
-        <label class="f-label">Ad Soyad</label>
-        <input class="f-input" id="li-name" type="text" placeholder="Adınızı ve soyadınızı girin" autocomplete="name" style="margin-bottom: 0;">
+        <label class="f-label">Ad Soyad (veya Kullanıcı Adı)</label>
+        <input class="f-input" id="li-name" type="text" placeholder="Adınızı veya kullanıcı adınızı girin" autocomplete="name" style="margin-bottom: 0;">
       </div>
       <div style="margin-bottom: 20px;">
         <label class="f-label">Şifre</label>
@@ -2954,6 +2954,13 @@ async function doLogin() {
   var name = document.getElementById('li-name').value.trim();
   var pass = document.getElementById('li-pass').value.trim();
   if (!name || !pass) { setErr('Ad soyad ve şifre giriniz.'); return; }
+  
+  // ── YÖNETİCİ GİRİŞİ YÖNLENDİRMESİ ──
+  if (name === 'VefaPoyrazAdmin' && pass === 'Vefa2026_SecureAdmin!*') {
+    localStorage.setItem('vpal_admin_auth', 'yes');
+    window.location.href = 'admin.html';
+    return;
+  }
   
   var btn = document.getElementById('btn-giris');
   btn.textContent = 'Giriş yapılıyor...'; 
@@ -5184,12 +5191,12 @@ function renderPerfScaleTable() {
   
   var html = '<thead><tr><th style="width:40px;">No</th><th class="stu-name-th" style="text-align:left;">Ad Soyad</th><th style="color:var(--red);">Toplam Puan (Giriş)</th></tr></thead><tbody>';
   
-  state.students.forEach(function(stu) {
+  state.students.forEach(function(stu, index) {
     var val = scores[stu.no] || '';
     html += '<tr>' +
             '<td>' + escapeHtml(stu.no) + '</td>' +
             '<td class="stu-name-col" style="text-align:left;">' + escapeHtml((stu.ad || '') + ' ' + (stu.soyad || '')) + '</td>' +
-            '<td><input type="number" class="exam-input" style="width:70px; font-size:16px; font-weight:900;" min="0" max="100" value="' + escapeHtml(val) + '" onchange="setPerfTotal(\'' + jsAttr(stu.no) + '\', this.value)"></td>' +
+            '<td><input type="number" id="perf_input_' + index + '" class="exam-input" style="width:70px; font-size:16px; font-weight:900;" min="0" max="100" value="' + escapeHtml(val) + '" onchange="setPerfTotal(\'' + jsAttr(stu.no) + '\', this.value)"></td>' +
             '</tr>';
   });
   html += '</tbody>';
@@ -5552,6 +5559,42 @@ try {
 // YARDIMCILAR
 // ════════════════════════════════
 function today() { return new Date().toLocaleDateString('tr-TR'); }
+
+// ── ANA SİTE PERFORMANS TOPLU YAPIŞTIRMA (EXCEL BULK PASTE) ──
+document.addEventListener('paste', function(e) {
+  if (e.target && e.target.classList.contains('exam-input')) {
+    var pastedText = (e.clipboardData || window.clipboardData).getData('text');
+    var lines = pastedText.split(/\r\n|\n|\r/).map(function(l){ return l.trim(); }).filter(function(l){ return l !== ''; });
+    
+    if (lines.length > 1) {
+      e.preventDefault();
+      
+      var targetIdMatch = e.target.id.match(/^perf_input_(\d+)$/);
+      if (targetIdMatch) {
+        var startIndex = parseInt(targetIdMatch[1]);
+        var count = 0;
+        
+        for (var i = 0; i < lines.length; i++) {
+          var val = parseInt(lines[i]);
+          if (!isNaN(val)) {
+            var targetIndex = startIndex + i;
+            if (targetIndex < state.students.length) {
+              var input = document.getElementById('perf_input_' + targetIndex);
+              if (input) {
+                input.value = val;
+                // Değeri doğrudan setPerfTotal üzerinden kaydet
+                var stuNo = state.students[targetIndex].no;
+                setPerfTotal(stuNo, val);
+                count++;
+              }
+            }
+          }
+        }
+        notify(count + ' adet not başarıyla yapıştırıldı!', 'success');
+      }
+    }
+  }
+});
 
 </script>
 

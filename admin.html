@@ -164,6 +164,19 @@
   </div>
 </div>
 
+<!-- Admin Login Overlay -->
+<div class="send-overlay" id="admin-auth-overlay" style="background:rgba(15,23,42,0.9);">
+  <div class="send-box" style="padding: 40px; border-radius: 20px;">
+    <div style="font-size: 48px; margin-bottom: 10px;">🔒</div>
+    <h3 style="margin-bottom: 5px; color: var(--text);">Sistem Yöneticisi</h3>
+    <p style="font-size: 13px; color: var(--gray-dark); margin-bottom: 20px;">Sisteme PDF yüklemek için yetkili girişi yapın.</p>
+    <input type="text" id="admin-user-input" placeholder="Kullanıcı Adı" style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: var(--r); font-size: 15px; outline: none; text-align: center; margin-bottom: 10px;">
+    <input type="password" id="admin-pass-input" placeholder="Yönetici Şifresi" style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: var(--r); font-size: 15px; outline: none; text-align: center; margin-bottom: 15px;" onkeypress="if(event.key === 'Enter') checkAdminAuth()">
+    <button onclick="checkAdminAuth()" style="width: 100%; padding: 14px; background: var(--red); color: #fff; border: none; border-radius: var(--r); font-weight: 800; font-size: 14px; cursor: pointer;">Giriş Yap</button>
+    <div id="admin-auth-error" style="color: var(--red); font-size: 12px; font-weight: 700; margin-top: 10px; display: none;">Hatalı kullanıcı adı veya şifre!</div>
+  </div>
+</div>
+
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbyubGSG3rAfR18MlCCgUXnLub2eNIYbt-jlLYFpoFy0_LcFTS3GBpXNmgmwi2VzTK4r/exec";
 
@@ -172,6 +185,24 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 let extractedClasses = [];
 let totalWarnings = 0;
+
+// ── AUTH CHECK ──
+window.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('vpal_admin_auth') !== 'yes') {
+    document.getElementById('admin-auth-overlay').classList.add('show');
+  }
+});
+
+function checkAdminAuth() {
+  var user = document.getElementById('admin-user-input').value;
+  var pass = document.getElementById('admin-pass-input').value;
+  if (user === 'VefaPoyrazAdmin' && pass === 'Vefa2026_SecureAdmin!*') {
+    localStorage.setItem('vpal_admin_auth', 'yes');
+    document.getElementById('admin-auth-overlay').classList.remove('show');
+  } else {
+    document.getElementById('admin-auth-error').style.display = 'block';
+  }
+}
 
 // ── UI ──
 function showAlert(type, msg) {
