@@ -465,12 +465,13 @@ function yeniOlcekEkle() {
 function yenidenDagit() {
   var cachedPuanlar = puanlarCache[aktifSinifKey] || {};
   for (var i = 0; i < aktifOgrenciSayisi; i++) {
-    var savedData = cachedPuanlar['r' + i];
+    var stu = currentStudents[i];
+    var savedData = cachedPuanlar['no_' + stu.no];
     if (savedData) {
       var total = typeof savedData === 'object' ? savedData.t : savedData;
       if (total !== '' && !isNaN(total)) {
         var newDist = distributePerfScore(parseInt(total), DIN_CRITERIA);
-        puanlarCache[aktifSinifKey]['r' + i] = { t: total, d: newDist };
+        puanlarCache[aktifSinifKey]['no_' + stu.no] = { t: total, d: newDist };
       }
     }
   }
@@ -556,8 +557,9 @@ function hesapla(rowId) {
     if (cell) cell.value = d;
   });
 
+  var stu = currentStudents[rowId];
   if (!puanlarCache[aktifSinifKey]) puanlarCache[aktifSinifKey] = {};
-  puanlarCache[aktifSinifKey]['r' + rowId] = { t: val, d: dist };
+  puanlarCache[aktifSinifKey]['no_' + stu.no] = { t: val, d: dist };
 
   guncelleStatlar();
 }
@@ -585,8 +587,9 @@ function distDegisti(rowId) {
   var totalInput = document.getElementById('total_' + rowId);
   totalInput.value = sum;
   
+  var stu = currentStudents[rowId];
   if (!puanlarCache[aktifSinifKey]) puanlarCache[aktifSinifKey] = {};
-  puanlarCache[aktifSinifKey]['r' + rowId] = { t: sum, d: newDist };
+  puanlarCache[aktifSinifKey]['no_' + stu.no] = { t: sum, d: newDist };
   
   guncelleStatlar();
 }
@@ -594,7 +597,8 @@ function distDegisti(rowId) {
 function guncelleStatlar() {
   var girilenCount = 0;
   for (var r = 0; r < aktifOgrenciSayisi; r++) {
-    var val = puanlarCache[aktifSinifKey] ? puanlarCache[aktifSinifKey]['r' + r] : '';
+    var stu = currentStudents[r];
+    var val = puanlarCache[aktifSinifKey] ? puanlarCache[aktifSinifKey]['no_' + stu.no] : '';
     if (val !== '') {
       var t = typeof val === 'object' ? val.t : val;
       if (t !== '' && !isNaN(t)) girilenCount++;
@@ -650,8 +654,13 @@ async function ogrencileriGetir(useCache = false) {
         var data = await resp.json();
 
         if (data && data.error) {
-          notify('Yetki hatası! Ana sistemden giriş yapın.', 'error');
-          document.getElementById('listeGovdesi').innerHTML = '<tr><td colspan="8"><div class="empty-state">Yetki hatası. Önce ana sistemden giriş yapmalısınız.</div></td></tr>';
+          notify(data.error, 'error', 3000);
+          if (data.error.indexOf('Yetkisiz') !== -1 || data.error.indexOf('Geçersiz') !== -1) {
+            localStorage.removeItem('vpAL3_teacher');
+            localStorage.removeItem('vpAL3_token');
+            setTimeout(function() { window.location.href = 'index.html'; }, 1500);
+          }
+          document.getElementById('listeGovdesi').innerHTML = '<tr><td colspan="8"><div class="empty-state">Yetki hatası. Lütfen tekrar giriş yapın.</div></td></tr>';
           return;
         }
         if (Array.isArray(data) && data.length > 0) { students = data; break; }
@@ -689,8 +698,22 @@ async function ogrencileriGetir(useCache = false) {
     var dbResp = await fetch(dbUrl);
     var dbData = await dbResp.json();
     if (dbData && Object.keys(dbData).length > 0) {
-      puanlarCache[aktifSinifKey] = dbData;
-      notify('Buluttaki ' + aktifPerformans + '. Performans puanları yüklendi. ☁️', 'info', 2000);
+      var hasOldKeys = Object.keys(dbData).some(function(k) { return k.startsWith('r'); });
+      var hasNewKeys = Object.keys(dbData).some(function(k) { return k.startsWith('no_'); });
+
+      if (hasOldKeys && !hasNewKeys) {
+        var migrated = {};
+        currentStudents.forEach(function(stu, i) {
+          if (dbData['r' + i]) {
+            migrated['no_' + stu.no] = dbData['r' + i];
+          }
+        });
+        puanlarCache[aktifSinifKey] = migrated;
+        notify('Eski puanlar öğrenci numaralarına göre aktarıldı. Lütfen "Kaydet"e basın!', 'info', 5000);
+      } else {
+        puanlarCache[aktifSinifKey] = dbData;
+        notify('Buluttaki ' + aktifPerformans + '. Performans puanları yüklendi. ☁️', 'info', 2000);
+      }
     }
   } catch(e) { console.warn("Eski veriler çekilemedi."); }
 
@@ -704,7 +727,7 @@ function cizTabloGovdesi() {
   var maxTotal = DIN_CRITERIA.reduce(function(sum, c) { return sum + c.max; }, 0);
 
   currentStudents.forEach(function(stu, index) {
-    var savedData = cachedPuanlar['r' + index];
+    var savedData = cachedPuanlar['no_' + stu.no];
     var savedTotal = '';
     var dist = [];
     

@@ -3342,9 +3342,32 @@ async function openClass(classId) {
   var area = document.getElementById('student-area');
   area.innerHTML = '<div class="empty-state"><span class="spin" style="width:32px;height:32px;border-width:3px;margin:0 auto 12px;display:block;"></span><div class="empty-text">\u00d6\u011frenciler y\u00fckleniyor... \u26a1</div></div>';
   try {
-    var url = API_URL + '?action=getStudents&className=' + encodeURIComponent(cls.name) + '&teacher=' + encodeURIComponent(state.teacher) + '&token=' + encodeURIComponent(state.token) + '&_t=' + Date.now();
-    var resp = await fetch(url);
-    var students = await resp.json();
+    var formatlar = [
+      cls.name,
+      cls.name.replace(/^(\d+)([A-Z\u00C7\u011E\u0130\u00D6\u015E\u00DC])$/, '$1/$2'),
+      cls.name.replace(/\//g, ''),
+      cls.name.trim().toUpperCase()
+    ].filter(function(v, i, a) { return a.indexOf(v) === i; });
+
+    var students = null;
+    for (var fi = 0; fi < formatlar.length; fi++) {
+      try {
+        var url = API_URL + '?action=getStudents&className=' + encodeURIComponent(formatlar[fi]) + '&teacher=' + encodeURIComponent(state.teacher) + '&token=' + encodeURIComponent(state.token) + '&_t=' + Date.now();
+        var resp = await fetch(url);
+        var data = await resp.json();
+        
+        if (data && data.error) {
+           students = data;
+           break;
+        }
+        if (Array.isArray(data) && data.length > 0) { 
+           students = data; 
+           // Eğer bulduğu format orijinalinden farklıysa, sınıf ismini gizlice düzelt ki kaydetmeler de çalışsın
+           if(formatlar[fi] !== cls.name) cls.name = formatlar[fi];
+           break; 
+        }
+      } catch(e) { console.warn('Format denendi:', formatlar[fi]); }
+    }
     
     // 🌟 YENİ: YETKİ HATASI GELDİYSE ÖĞRENCİ LİSTESİ YERİNE UYARI VER
     if (students && students.error) {
@@ -4096,16 +4119,23 @@ function closeCustomAlert() { document.getElementById('custom-alert-box').classL
 // ════════════════════════════════
 // BULUT SENKRONIZASYONU
 // ════════════════════════════════
-// BULUT SENKRONIZASYONU
 async function syncTeacherProfile() {
   if (!state.teacher) return;
   var myClasses = getMyClasses(); var myClassIds = myClasses.map(function (c) { return c.id; });
   var myStatuses = {}, myMultScores = {}, myNotes = {};
+  var myHwList = {}, myHwData = {}, myPerfScores = {}, myPerfCriteria = {}, myPerfCourseNames = {};
   
   Object.keys(state.statuses).forEach(function (key) { if (key === '_general' || myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myStatuses[key] = state.statuses[key]; });
   Object.keys(state.multScores || {}).forEach(function (key) { if (key === '_general' || myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myMultScores[key] = state.multScores[key]; });
   Object.keys(state.notes).forEach(function (key) { if (myClassIds.some(function (id) { return key.indexOf(id) !== -1; })) myNotes[key] = state.notes[key]; });
   
+  // GARBAGE COLLECTION FOR NEW MODULES
+  Object.keys(state.hwList || {}).forEach(function(key) { if (myClassIds.includes(key)) myHwList[key] = state.hwList[key]; });
+  Object.keys(state.hwData || {}).forEach(function(key) { if (myClassIds.includes(key)) myHwData[key] = state.hwData[key]; });
+  Object.keys(state.perfScores || {}).forEach(function(key) { if (myClassIds.some(function(id) { return key.startsWith(id + '_'); })) myPerfScores[key] = state.perfScores[key]; });
+  Object.keys(state.perfCriteria || {}).forEach(function(key) { if (myClassIds.some(function(id) { return key.startsWith(id + '_'); })) myPerfCriteria[key] = state.perfCriteria[key]; });
+  Object.keys(state.perfCourseNames || {}).forEach(function(key) { if (myClassIds.includes(key)) myPerfCourseNames[key] = state.perfCourseNames[key]; });
+
   try {
     await fetch(API_URL, { 
         method: 'POST', mode: 'cors', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
@@ -4113,17 +4143,16 @@ async function syncTeacherProfile() {
             action: 'saveTeacherData', 
             teacher: state.teacher, 
             token: state.token, 
-            // 🚀 BURASI DEĞİŞTİ: Yeni modüller (Ödev ve Performans) buluta gönderiliyor
             jsonData: JSON.stringify({ 
                 classes: myClasses, 
                 notes: myNotes, 
                 statuses: myStatuses, 
                 multScores: myMultScores,
-                hwList: state.hwList,
-                hwData: state.hwData,
-                perfScores: state.perfScores,
-                perfCriteria: state.perfCriteria,
-                perfCourseNames: state.perfCourseNames
+                hwList: myHwList,
+                hwData: myHwData,
+                perfScores: myPerfScores,
+                perfCriteria: myPerfCriteria,
+                perfCourseNames: myPerfCourseNames
             })
         }) 
     });
