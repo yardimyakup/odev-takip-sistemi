@@ -3293,7 +3293,18 @@ async function forgotSendOtp() {
       })
     });
     if (!response.ok) throw new Error('HTTP ' + response.status);
-    var result = await response.json();
+    
+    var responseText = await response.text();
+    var result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      if (responseText.includes('HATA') || responseText.includes('Yetkisiz') || responseText.length < 200) {
+        throw new Error(responseText);
+      } else {
+        throw new Error('Sunucudan geçersiz yanıt döndü. Scriptinizi Google E-Tablolar\'da güncellediğinizden ve yeni sürüm olarak dağıttığınızdan emin olun.');
+      }
+    }
     
     if (result.success) {
       forgotEmail = result.email;
@@ -3307,7 +3318,11 @@ async function forgotSendOtp() {
       notify(result.msg || 'İşlem başarısız oldu.', 'error', 4000);
     }
   } catch(e) {
-    notify('Sunucuya bağlanılamadı. İnternetinizi kontrol edin.', 'error');
+    var errMsg = e.message || '';
+    if (errMsg.indexOf('Failed to fetch') !== -1 || errMsg.indexOf('NetworkError') !== -1 || !errMsg) {
+      errMsg = 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin veya Google Script API URL\'sinin doğruluğundan emin olun.';
+    }
+    notify(errMsg, 'error', 6000);
   }
   
   btn.textContent = 'Kod Gönder';
@@ -3359,7 +3374,18 @@ async function forgotResetPass() {
       })
     });
     if (!response.ok) throw new Error('HTTP ' + response.status);
-    var result = await response.json();
+    
+    var responseText = await response.text();
+    var result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      if (responseText.includes('HATA') || responseText.includes('Yetkisiz') || responseText.length < 200) {
+        throw new Error(responseText);
+      } else {
+        throw new Error('Sunucudan geçersiz yanıt döndü. Scriptinizi Google E-Tablolar\'da güncellediğinizden ve yeni sürüm olarak dağıttığınızdan emin olun.');
+      }
+    }
     
     if (result.success) {
       closeOverlay('overlay-forgot-password');
@@ -3373,7 +3399,11 @@ async function forgotResetPass() {
       }
     }
   } catch(e) {
-    notify('Sunucuya bağlanılamadı. İnternetinizi kontrol edin.', 'error');
+    var errMsg = e.message || '';
+    if (errMsg.indexOf('Failed to fetch') !== -1 || errMsg.indexOf('NetworkError') !== -1 || !errMsg) {
+      errMsg = 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin veya Google Script API URL\'sinin doğruluğundan emin olun.';
+    }
+    notify(errMsg, 'error', 6000);
   }
   
   btn.textContent = 'Şifreyi Güncelle';
