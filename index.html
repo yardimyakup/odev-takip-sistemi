@@ -1679,7 +1679,10 @@ body.dark .mult-bar { background:var(--gray-100); }
         <input class="f-input" id="li-name" type="text" placeholder="Adınızı veya kullanıcı adınızı girin" autocomplete="name" style="margin-bottom: 0;">
       </div>
       <div style="margin-bottom: 20px;">
-        <label class="f-label">Şifre</label>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+          <label class="f-label" style="margin-bottom: 0;">Şifre</label>
+          <a href="#" onclick="openForgotPassword(); event.preventDefault();" style="font-size: 11px; font-weight: 700; color: var(--red); text-decoration: none;">Şifremi Unuttum</a>
+        </div>
         <div class="f-input-wrap" style="margin-bottom: 0;">
           <input class="f-input" id="li-pass" type="password" placeholder="Şifreniz" autocomplete="current-password" style="margin-bottom: 0;">
           <button class="eye-btn" onclick="toggleEye('li-pass',this)" type="button">👁</button>
@@ -2645,6 +2648,65 @@ function checkRehberDurum() {
   </div>
 </div>
 
+<div class="overlay center" id="overlay-forgot-password">
+  <div class="sheet centered" style="max-width:360px;">
+    <div style="font-size:44px;margin-bottom:12px;">🔑</div>
+    <div class="sheet-title" style="justify-content:center;display:flex;margin-bottom:8px;">Şifremi Unuttum</div>
+    
+    <!-- Step 1: Enter Name/Email -->
+    <div id="forgot-step-1" style="width: 100%;">
+      <div style="font-size:12.5px;color:var(--text-soft);font-weight:600;margin-bottom:16px;line-height:1.5;text-align:center;">
+        Şifrenizi sıfırlamak için kayıtlı <b>Ad Soyad</b> veya <b>E-posta</b> adresinizi girin.
+      </div>
+      <input class="f-input" id="forgot-user-input" type="text" placeholder="Ad Soyad veya E-posta" style="margin-bottom:16px; text-align:center;">
+      <div class="sheet-actions">
+        <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-forgot-password')">İptal</button>
+        <button class="btn-full btn-full-red" id="btn-forgot-send-otp" onclick="forgotSendOtp()">Kod Gönder</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Enter OTP -->
+    <div id="forgot-step-2" style="display:none; width: 100%;">
+      <div style="font-size:12.5px;color:var(--text-soft);font-weight:600;margin-bottom:16px;line-height:1.5;text-align:center;">
+        Kayıtlı e-postanız <b id="forgot-masked-email" style="color:var(--text);"></b> adresine gönderilen 6 haneli kodu girin.
+      </div>
+      <input class="f-input" id="forgot-otp-input" type="number" inputmode="numeric" placeholder="000000" style="font-size:24px; font-weight:900; letter-spacing:6px; text-align:center; padding:15px; font-family:var(--font-mono); margin-bottom:16px;">
+      <div class="sheet-actions">
+        <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-forgot-password')">İptal</button>
+        <button class="btn-full btn-full-red" id="btn-forgot-verify-otp" onclick="forgotVerifyOtp()">Kodu Doğrula</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Enter New Password -->
+    <div id="forgot-step-3" style="display:none; width: 100%;">
+      <div style="font-size:12.5px;color:var(--text-soft);font-weight:600;margin-bottom:16px;line-height:1.5;text-align:center;">
+        Lütfen yeni şifrenizi girin.
+      </div>
+      
+      <div style="margin-bottom: 12px; text-align: left; width: 100%;">
+        <label class="f-label">Yeni Şifre</label>
+        <div class="f-input-wrap">
+          <input class="f-input" id="forgot-pass" type="password" placeholder="En az 4 karakter" style="margin-bottom:0;">
+          <button class="eye-btn" onclick="toggleEye('forgot-pass',this)" type="button">👁</button>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 16px; text-align: left; width: 100%;">
+        <label class="f-label">Yeni Şifre Tekrar</label>
+        <div class="f-input-wrap">
+          <input class="f-input" id="forgot-pass2" type="password" placeholder="Tekrar girin" style="margin-bottom:0;">
+          <button class="eye-btn" onclick="toggleEye('forgot-pass2',this)" type="button">👁</button>
+        </div>
+      </div>
+
+      <div class="sheet-actions">
+        <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-forgot-password')">İptal</button>
+        <button class="btn-full btn-full-red" id="btn-forgot-reset-pass" onclick="forgotResetPass()">Şifreyi Güncelle</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════ -->
@@ -2711,9 +2773,6 @@ function getDeviceLabel() {
 // ════════════════════════════════
 // DURUM (STATE)
 // ════════════════════════════════
-// ════════════════════════════════
-// DURUM (STATE)
-// ════════════════════════════════
 var state = {
   users: {},
   teacher: null,
@@ -2775,7 +2834,7 @@ function persist() {
       });
       try {
         var k2 = STORAGE_KEY + '_' + state.teacher.replace(/\s+/g, '');
-        localStorage.setItem(k2, JSON.stringify({ classes: state.classes, homeworks: state.homeworks, statuses: state.statuses, notes: state.notes, multScores: state.multScores || {}, seatingPlans: state.seatingPlans }));
+        localStorage.setItem(k2, JSON.stringify({ classes: state.classes, homeworks: state.homeworks, statuses: state.statuses, notes: state.notes, multScores: state.multScores || {}, seatingPlans: state.seatingPlans, hwList: state.hwList || {}, hwData: state.hwData || {}, perfScores: state.perfScores || {}, perfCriteria: state.perfCriteria || {}, perfCourseNames: state.perfCourseNames || {} }));
         notify(cleaned + ' eski kayıt temizlendi.', 'success', 3500);
       } catch (e2) {
         showCustomConfirm('Hafıza Dolu!', 'Depolama alani doldu. Lütfen <b>KAYDET</b> butonuna basin.', '⚠️', function () {}, false);
@@ -2813,15 +2872,6 @@ function hydrate() {
 
 hydrate();
 
-// ════════════════════════════════
-// BOOT
-// ════════════════════════════════
-// ════════════════════════════════
-// BOOT (SİSTEM BAŞLANGICI)
-// ════════════════════════════════
-// ════════════════════════════════
-// BOOT (SİSTEM BAŞLANGICI)
-// ════════════════════════════════
 // ════════════════════════════════
 // BOOT (SİSTEM BAŞLANGICI)
 // ════════════════════════════════
@@ -3205,9 +3255,138 @@ function confirmLogout() {
   notify('\u00c7\u0131k\u0131\u015f yap\u0131ld\u0131.', 'info');
 }
 
+var forgotEmail = "";
+
+function openForgotPassword() {
+  document.getElementById('forgot-user-input').value = '';
+  document.getElementById('forgot-otp-input').value = '';
+  document.getElementById('forgot-pass').value = '';
+  document.getElementById('forgot-pass2').value = '';
+  
+  document.getElementById('forgot-step-1').style.display = 'block';
+  document.getElementById('forgot-step-2').style.display = 'none';
+  document.getElementById('forgot-step-3').style.display = 'none';
+  
+  openOverlay('overlay-forgot-password');
+  setTimeout(function() { document.getElementById('forgot-user-input').focus(); }, 200);
+}
+
+async function forgotSendOtp() {
+  var userInput = document.getElementById('forgot-user-input').value.trim();
+  if (!userInput) {
+    notify('Ad Soyad veya E-posta giriniz.', 'error');
+    return;
+  }
+  
+  var btn = document.getElementById('btn-forgot-send-otp');
+  btn.textContent = 'Kod Gönderiliyor...';
+  btn.disabled = true;
+  
+  try {
+    var response = await fetch(API_URL, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'forgotPasswordSendOtp',
+        userOrEmail: userInput
+      })
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var result = await response.json();
+    
+    if (result.success) {
+      forgotEmail = result.email;
+      document.getElementById('forgot-masked-email').textContent = result.maskedEmail;
+      
+      document.getElementById('forgot-step-1').style.display = 'none';
+      document.getElementById('forgot-step-2').style.display = 'block';
+      notify('Doğrulama kodu e-postanıza gönderildi! ✉️', 'success');
+      setTimeout(function() { document.getElementById('forgot-otp-input').focus(); }, 200);
+    } else {
+      notify(result.msg || 'İşlem başarısız oldu.', 'error', 4000);
+    }
+  } catch(e) {
+    notify('Sunucuya bağlanılamadı. İnternetinizi kontrol edin.', 'error');
+  }
+  
+  btn.textContent = 'Kod Gönder';
+  btn.disabled = false;
+}
+
+function forgotVerifyOtp() {
+  var otp = document.getElementById('forgot-otp-input').value.trim();
+  if (!otp || otp.length < 6) {
+    notify('Lütfen 6 haneli kodu eksiksiz girin.', 'error');
+    return;
+  }
+  
+  document.getElementById('forgot-step-2').style.display = 'none';
+  document.getElementById('forgot-step-3').style.display = 'block';
+  setTimeout(function() { document.getElementById('forgot-pass').focus(); }, 200);
+}
+
+async function forgotResetPass() {
+  var otp = document.getElementById('forgot-otp-input').value.trim();
+  var pass = document.getElementById('forgot-pass').value.trim();
+  var pass2 = document.getElementById('forgot-pass2').value.trim();
+  
+  if (pass.length < 4) {
+    notify('Yeni şifre en az 4 karakter olmalıdır.', 'error');
+    return;
+  }
+  if (pass !== pass2) {
+    notify('Şifreler eşleşmiyor.', 'error');
+    return;
+  }
+  
+  var btn = document.getElementById('btn-forgot-reset-pass');
+  btn.textContent = 'Güncelleniyor...';
+  btn.disabled = true;
+  
+  try {
+    var response = await fetch(API_URL, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'forgotPasswordVerifyAndReset',
+        email: forgotEmail,
+        otp: otp,
+        newPass: pass,
+        deviceId: getDeviceId(),
+        deviceLabel: getDeviceLabel()
+      })
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var result = await response.json();
+    
+    if (result.success) {
+      closeOverlay('overlay-forgot-password');
+      notify('Şifreniz başarıyla güncellendi! Giriş yapılıyor... 🎉', 'success', 4000);
+      await finishLogin(result);
+    } else {
+      notify(result.msg || 'Şifre güncellenemedi.', 'error', 4000);
+      if (result.msg && (result.msg.indexOf('kod') !== -1 || result.msg.indexOf('doğrulama') !== -1)) {
+        document.getElementById('forgot-step-3').style.display = 'none';
+        document.getElementById('forgot-step-2').style.display = 'block';
+      }
+    }
+  } catch(e) {
+    notify('Sunucuya bağlanılamadı. İnternetinizi kontrol edin.', 'error');
+  }
+  
+  btn.textContent = 'Şifreyi Güncelle';
+  btn.disabled = false;
+}
+
 document.getElementById('li-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
 document.getElementById('li-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
 document.getElementById('login-device-code').addEventListener('keydown', function (e) { if (e.key === 'Enter') confirmDeviceLogin(); });
+document.getElementById('forgot-user-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') forgotSendOtp(); });
+document.getElementById('forgot-otp-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') forgotVerifyOtp(); });
+document.getElementById('forgot-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') forgotResetPass(); });
+document.getElementById('forgot-pass2').addEventListener('keydown', function (e) { if (e.key === 'Enter') forgotResetPass(); });
 
 // ════════════════════════════════
 // DASHBOARD
@@ -4209,21 +4388,6 @@ async function loadTeacherProfile(teacherName) {
 // ════════════════════════════════
 // OTURMA PLANI (SEATING PLAN)
 // ════════════════════════════════
-// ════════════════════════════════
-// OTURMA PLANI (SEATING PLAN) YENİ MANTIK
-// ════════════════════════════════
-
-// ════════════════════════════════
-// OTURMA PLANI (SEATING PLAN)
-// ════════════════════════════════
-
-// ════════════════════════════════
-// OTURMA PLANI (SEATING PLAN)
-// ════════════════════════════════
-
-// ════════════════════════════════
-// OTURMA PLANI (SEATING PLAN)
-// ════════════════════════════════
 
 async function openSeatingPlan() {
   if (!state.currentClass || state.students.length === 0) {
@@ -4906,10 +5070,6 @@ function deleteHwModal() {
 
 
 
-/* KARELİ (IZGARALI) PDF YAZDIRMA */
-/* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
-/* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
-/* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
 /* KARELİ (IZGARALI) YATAY VE SAYFALAMALI PDF YAZDIRMA */
 function downloadHomeworkPDF(isCompact) {
   var clsId = state.currentClass.id;
@@ -5055,7 +5215,6 @@ function downloadHomeworkPDF(isCompact) {
 
 
 /* ÖDEV SONUÇLARINI GOOGLE SHEETS'E GÖNDERME FONKSİYONU */
-/* ÖDEV SONUÇLARINI GOOGLE SHEETS'E GÖNDERME FONKSİYONU */
 async function saveHomeworkToCloud() {
   var clsId = state.currentClass.id;
   var hws = state.hwList[clsId] || [];
@@ -5137,14 +5296,6 @@ async function saveHomeworkToCloud() {
 
 /* ════════════════════════════════════════════════════════
    PERFORMANS DEĞERLENDİRME ÖLÇEĞİ MODÜLÜ
-════════════════════════════════════════════════════════ */
-
-/* ════════════════════════════════════════════════════════
-   PERFORMANS DEĞERLENDİRME ÖLÇEĞİ MODÜLÜ (GÜNCELLENDİ)
-════════════════════════════════════════════════════════ */
-
-/* ════════════════════════════════════════════════════════
-   PERFORMANS DEĞERLENDİRME ÖLÇEĞİ MODÜLÜ (1. ve 2. PERFORMANS)
 ════════════════════════════════════════════════════════ */
 
 // 1. Performans Kriterleri (7 Kriter - Toplam 100)
