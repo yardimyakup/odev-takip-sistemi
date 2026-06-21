@@ -5225,7 +5225,7 @@ function renderPerfScaleTable() {
     html += '<tr>' +
             '<td>' + escapeHtml(stu.no) + '</td>' +
             '<td class="stu-name-col" style="text-align:left;">' + escapeHtml((stu.ad || '') + ' ' + (stu.soyad || '')) + '</td>' +
-            '<td><input type="number" id="perf_input_' + index + '" class="exam-input" style="width:70px; font-size:16px; font-weight:900;" min="0" max="100" value="' + escapeHtml(val) + '" onchange="setPerfTotal(\'' + jsAttr(stu.no) + '\', this.value)"></td>' +
+            '<td><input type="text" id="perf_input_' + index + '" class="exam-input" style="width:70px; font-size:16px; font-weight:900; text-align:center;" value="' + escapeHtml(val) + '" onchange="setPerfTotal(\'' + jsAttr(stu.no) + '\', this.value)"></td>' +
             '</tr>';
   });
   html += '</tbody>';
@@ -5234,15 +5234,30 @@ function renderPerfScaleTable() {
 
 function setPerfTotal(no, val) {
   if (val !== "") {
-    var intVal = parseInt(val);
-    if (intVal > 100) { intVal = 100; notify('Puan en fazla 100 olabilir!', 'error'); }
-    if (intVal < 0) { intVal = 0; notify('Puan 0\'dan küçük olamaz!', 'error'); }
-    val = intVal;
+    if (typeof val === 'string' && val.toLowerCase() === 'g') {
+      val = 0; // G girildiğinde veya kopyalandığında doğrudan 0 olarak kabul et
+    } else {
+      var intVal = parseInt(val);
+      if (isNaN(intVal)) {
+        notify('Lütfen geçerli bir puan (veya G) girin!', 'error');
+        val = ''; // Geçersiz girişleri sıfırla
+      } else {
+        if (intVal > 100) { intVal = 100; notify('Puan en fazla 100 olabilir!', 'error'); }
+        if (intVal < 0) { intVal = 0; notify('Puan 0\'dan küçük olamaz!', 'error'); }
+        val = intVal;
+      }
+    }
   }
   var key = state.currentClass.id + '_p' + state.activePerfIndex;
   state.perfScores[key][no] = val;
   persist();
-  // Sadece toplamı değiştirme, input focus kaybolmasın
+  
+  // Input değerini görsel olarak güncelle
+  var index = state.students.findIndex(function(s) { return s.no == no; });
+  if (index !== -1) {
+    var inputEl = document.getElementById('perf_input_' + index);
+    if (inputEl) inputEl.value = val;
+  }
 }
 
 // ════════════════════════════════════════════════════════
@@ -5365,7 +5380,11 @@ function savePerfCriteria() {
 
 // 🧮 OTOMATİK PUAN DAĞITMA MATEMATİĞİ
 function distributePerfScore(totalScore, criteriaList) {
-  if (totalScore === "" || isNaN(totalScore)) return criteriaList.map(function() { return ''; });
+  if (totalScore === "") return criteriaList.map(function() { return ''; });
+  if (typeof totalScore === 'string' && totalScore.toLowerCase() === 'g') {
+    return criteriaList.map(function() { return 0; });
+  }
+  if (isNaN(totalScore)) return criteriaList.map(function() { return ''; });
   totalScore = parseInt(totalScore);
   if (totalScore <= 0) return criteriaList.map(function() { return 0; });
   if (totalScore >= 100) return criteriaList.map(function(c) { return c.max; });
@@ -5593,7 +5612,8 @@ function today() { return new Date().toLocaleDateString('tr-TR'); }
 document.addEventListener('paste', function(e) {
   if (e.target && e.target.classList.contains('exam-input')) {
     var pastedText = (e.clipboardData || window.clipboardData).getData('text');
-    var lines = pastedText.split(/\r\n|\n|\r/).map(function(l){ return l.trim(); }).filter(function(l){ return l !== ''; });
+    // Hem alt alta (newline) hem de yan yana (tab, space) kopyalamaları desteklemek için tüm boşluk karakterlerinden ayırıyoruz
+    var lines = pastedText.split(/[\s]+/).map(function(l){ return l.trim(); }).filter(function(l){ return l !== ''; });
     
     if (lines.length > 1) {
       e.preventDefault();
@@ -5604,15 +5624,17 @@ document.addEventListener('paste', function(e) {
         var count = 0;
         
         for (var i = 0; i < lines.length; i++) {
-          var val = parseInt(lines[i]);
-          if (!isNaN(val)) {
-            var targetIndex = startIndex + i;
+          var lineVal = lines[i];
+          var isG = (typeof lineVal === 'string' && lineVal.toLowerCase() === 'g');
+          var val = isG ? 0 : parseInt(lineVal);
+
+          if (isG || !isNaN(val)) {
+            var targetIndex = startIndex + count; // i yerine count kullanıyoruz ki eğer araya geçersiz bir karakter girerse sıra atlamasın
             if (targetIndex < state.students.length) {
               var input = document.getElementById('perf_input_' + targetIndex);
               if (input) {
-                input.value = val;
-                // Değeri doğrudan setPerfTotal üzerinden kaydet
                 var stuNo = state.students[targetIndex].no;
+                // setPerfTotal does validation, updates visual input, and saves state
                 setPerfTotal(stuNo, val);
                 count++;
               }
