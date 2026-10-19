@@ -1,0 +1,999 @@
+const SPREADSHEET_ID = "1eHWInQVfKdUBQd0I4_uQNTS-cVfqJDjzuQ3fH5s7120";
+const MAX_LOCK_WAIT = 30000;
+const MAX_JSON_CHUNK_SIZE = 40000;
+const MAX_JSON_CHUNKS = 25;
+const TOKEN_TTL_DAYS = 30;
+const MAX_SESSION_TOKENS = 5;
+const MAX_TRUSTED_DEVICES = 5;
+const DEVICE_OTP_TTL_SECONDS = 600;
+const HESAP_HEADERS = ["Ad Soyad", "Branş", "Şifre", "Kayıt Tarihi", "Token", "E-posta", "Bilinen Cihazlar", "Son Giriş"];
+
+
+function yetkiAl() {
+  MailApp.sendEmail(Session.getActiveUser().getEmail(), "Yetki Testi", "Bu e-posta sadece Google'dan izin almak için atılmıştır.");
+}
+
+function ensureHesapSheet(ss) {
+  var sheet = ss.getSheetByName("Hesap");
+  if (!sheet) {
+    sheet = ss.insertSheet("Hesap");
+    sheet.appendRow(HESAP_HEADERS);
+  }
+
+  var lastCol = Math.max(sheet.getLastColumn(), HESAP_HEADERS.length);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  for (var i = 0; i < HESAP_HEADERS.length; i++) {
+    if (!headers[i]) {
+      sheet.getRange(1, i + 1).setValue(HESAP_HEADERS[i]);
+    }
+  }
+  sheet.getRange(1, 1, 1, HESAP_HEADERS.length)
+    .setFontWeight("bold")
+    .setBackground("#e02020")
+    .setFontColor("#ffffff")
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle");
+  return sheet;
+}
+
+function cleanStoredPassword(value) {
+  return String(value || "").replace(/^'/, "");
+}
+
+function safeCompare(a, b) {
+  a = String(a || "");
+  b = String(b || "");
+  if (a.length !== b.length) return false;
+  var diff = 0;
+  for (var i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function sha256Hex(text) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text, Utilities.Charset.UTF_8);
+  return bytes.map(function(b) {
+    var v = (b < 0 ? b + 256 : b).toString(16);
+    return v.length === 1 ? "0" + v : v;
+  }).join("");
+}
+
+function makePasswordHash(pass) {
+  var salt = Utilities.getUuid().replace(/-/g, "");
+  return "sha256$" + salt + "$" + sha256Hex(salt + "|" + String(pass || ""));
+}
+
+function verifyPassword(storedValue, pass) {
+  var stored = cleanStoredPassword(storedValue);
+  if (stored.indexOf("sha256$") === 0) {
+    var parts = stored.split("$");
+    if (parts.length !== 3) return false;
+    return safeCompare(parts[2], sha256Hex(parts[1] + "|" + String(pass || "")));
+  }
+  return stored === String(pass || "");
+}
+
+function parseTokenRecords(raw) {
+  raw = String(raw || "").trim();
+  if (!raw) return [];
+  if (raw.charAt(0) === "[") {
+    try {
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(function(item) {
+        if (typeof item === "string") return { token: item, ts: 0 };
+        return { token: String(item.token || ""), ts: Number(item.ts || 0) };
+      }).filter(function(item) { return item.token; });
+    } catch (err) {
+      return [];
+    }
+  }
+  return raw.split(",").map(function(token) {
+    return { token: String(token || "").trim(), ts: 0 };
+  }).filter(function(item) { return item.token; });
+}
+
+function isTokenFresh(record) {
+  if (!record.ts) return true;
+  return (Date.now() - Number(record.ts)) < TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
+}
+
+function parseTrustedDevices(raw) {
+  raw = String(raw || "").trim();
+  if (!raw) return [];
+  try {
+    var devices = JSON.parse(raw);
+    if (!Array.isArray(devices)) return [];
+    return devices.filter(function(d) { return d && d.id; });
+  } catch (err) {
+    return [];
+  }
+}
+
+function normalizeDeviceId(deviceId) {
+  return String(deviceId || "").replace(/[^A-Za-z0-9_\-]/g, "").substring(0, 90);
+}
+
+function normalizeDeviceLabel(label) {
+  label = String(label || "Bilinmeyen cihaz").replace(/\s+/g, " ").trim();
+  return label.substring(0, 90);
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function addTrustedDevice(devices, deviceId, label) {
+  deviceId = normalizeDeviceId(deviceId);
+  if (!deviceId) return devices || [];
+
+  devices = devices || [];
+  var now = new Date().toLocaleString("tr-TR");
+  var found = false;
+  for (var i = 0; i < devices.length; i++) {
+    if (String(devices[i].id) === deviceId) {
+      devices[i].label = normalizeDeviceLabel(label || devices[i].label);
+      devices[i].lastSeen = now;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    devices.push({ id: deviceId, label: normalizeDeviceLabel(label), firstSeen: now, lastSeen: now });
+  }
+  while (devices.length > MAX_TRUSTED_DEVICES) devices.shift();
+  return devices;
+}
+
+function isTrustedDevice(devices, deviceId) {
+  deviceId = normalizeDeviceId(deviceId);
+  return !!deviceId && (devices || []).some(function(d) { return String(d.id) === deviceId; });
+}
+
+function maskEmail(email) {
+  email = String(email || "");
+  var parts = email.split("@");
+  if (parts.length !== 2) return email;
+  var name = parts[0];
+  var domain = parts[1];
+  return name.substring(0, Math.min(2, name.length)) + "***@" + domain;
+}
+
+function makeOtpCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function sendDeviceOtpEmail(email, teacherName, otpCode, deviceLabel) {
+  var safeTeacherName = escapeHtml(teacherName);
+  var safeDeviceLabel = escapeHtml(normalizeDeviceLabel(deviceLabel));
+  MailApp.sendEmail({
+    to: email,
+    subject: "Vefa Poyraz A.L. - Yeni Cihaz Doğrulama Kodu",
+    htmlBody: "<div style='font-family:Arial,sans-serif; padding:20px; color:#333; max-width:520px; border:1px solid #ddd; border-radius:10px;'>" +
+              "<h2 style='color:#e02020; text-align:center;'>Yeni cihaz doğrulaması</h2>" +
+              "<p>Merhaba <b>" + safeTeacherName + "</b>, hesabınıza tanınmayan bir cihazdan giriş yapılmak isteniyor.</p>" +
+              "<p><b>Cihaz:</b> " + safeDeviceLabel + "</p>" +
+              "<h1 style='font-size:36px; letter-spacing:6px; background:#f1f3f6; padding:15px; text-align:center; border-radius:10px; border:1px solid #ccc;'>" + otpCode + "</h1>" +
+              "<p style='font-size:12px; color:#777; text-align:center;'>Bu kod <b>10 dakika</b> geçerlidir. Bu giriş size ait değilse kodu kimseyle paylaşmayın ve sistem yöneticisine haber verin.</p>" +
+              "</div>"
+  });
+}
+
+function issueLoginSuccess(hesapSheet, rowIndex, rowValues, payload) {
+  var newToken = Utilities.getUuid();
+  var tokensArray = parseTokenRecords(rowValues[4])
+    .filter(function(item) { return isTokenFresh(item); });
+
+  tokensArray.push({ token: newToken, ts: Date.now() });
+  while (tokensArray.length > MAX_SESSION_TOKENS) tokensArray.shift();
+
+  var devices = parseTrustedDevices(rowValues[6]);
+  devices = addTrustedDevice(devices, payload.deviceId, payload.deviceLabel);
+
+  hesapSheet.getRange(rowIndex, 5).setValue(JSON.stringify(tokensArray));
+  hesapSheet.getRange(rowIndex, 7).setValue(JSON.stringify(devices));
+  hesapSheet.getRange(rowIndex, 8).setValue(new Date().toLocaleString("tr-TR"));
+
+  return createJsonResponse({
+    success: true,
+    fullName: rowValues[0],
+    branch: rowValues[1] || "Diger",
+    token: newToken
+  });
+}
+
+function verifyToken(ss, teacherName, token) {
+  if (!teacherName || !token) return false;
+  
+ 
+  var cache = CacheService.getScriptCache();
+  var cacheKey = "token_" + String(teacherName).replace(/\s+/g, '') + "_" + String(token);
+  if (cache.get(cacheKey) === "valid") {
+    return true; 
+  }
+
+  
+  var hesapSheet = ss.getSheetByName("Hesap");
+  if (!hesapSheet) return false;
+  
+  var data = hesapSheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    var dbUser = String(data[i][0]).toLowerCase().trim();
+    var dbTokensStr = String(data[i][4]).trim(); 
+    
+    if (dbUser === String(teacherName).toLowerCase().trim()) {
+      var tokensArray = parseTokenRecords(dbTokensStr);
+      var tokenOk = tokensArray.some(function(item) {
+        return String(item.token).trim() === String(token).trim() && isTokenFresh(item);
+      });
+      if (tokenOk) {
+       
+        cache.put(cacheKey, "valid", 3600);
+        return true; 
+      }
+    }
+  }
+  return false; 
+}
+
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  var locked = false;
+  
+  try {
+    locked = lock.tryLock(MAX_LOCK_WAIT);
+    if (!locked) {
+      return createTextResponse("Sistem meşgul, lütfen 10 saniye sonra tekrar deneyin.");
+    }
+    
+    var jsonString = e.postData.contents;
+    var payload = JSON.parse(jsonString);
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var action = payload.action;
+
+    
+    var publicActions = ["login", "verifyLoginDevice", "registerUser", "sendOtp", "bulkImport", "forgotPasswordSendOtp", "forgotPasswordVerifyAndReset"];
+    if (publicActions.indexOf(action) === -1) {
+      var reqToken = payload.token;
+      var reqTeacher = payload.teacher;
+      if (!verifyToken(ss, reqTeacher, reqToken)) {
+        return createTextResponse("HATA: Yetkisiz işlem! Geçersiz veya süresi dolmuş oturum anahtarı (Token). Lütfen çıkış yapıp tekrar girin.");
+      }
+    }
+   
+    if (action === "login") return handleLogin(ss, payload);
+    if (action === "verifyLoginDevice") return handleVerifyLoginDevice(ss, payload);
+    if (action === "sendOtp") return handleSendOtp(payload); 
+    if (action === "saveSeatingPlan") return handleSaveSeatingPlan(ss, payload);
+    if (action === "registerUser") return handleRegister(ss, payload);
+    if (action === "logout") return handleLogout(ss, payload);
+    if (action === "addStudent") return handleAddStudent(ss, payload);
+    if (action === "deleteStudent") return handleDeleteStudent(ss, payload);
+    if (action === "saveRecord") return handleSaveRecord(ss, payload);
+    if (action === "saveTeacherData") return handleSaveTeacherData(ss, payload);
+    if (action === "bulkImport") return handleBulkImport(ss, payload);
+    if (action === "saveHomework") return handleSaveHomework(ss, payload);
+    if (action === "savePerformans") return handleSavePerformans(ss, payload);
+    if (action === "forgotPasswordSendOtp") return handleForgotPasswordSendOtp(ss, payload);
+    if (action === "forgotPasswordVerifyAndReset") return handleForgotPasswordVerifyAndReset(ss, payload);
+
+    return createTextResponse("Bilinmeyen işlem: " + action);
+
+  } catch (error) {
+    Logger.log("POST Hatası: " + error.toString());
+    return createTextResponse("HATA: " + error.toString());
+  } finally {
+    if (locked) lock.releaseLock();
+  }
+}
+
+function doGet(e) {
+  var action = e.parameter.action;
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  try {
+    var publicActions = [];
+    if (publicActions.indexOf(action) === -1) {
+      var reqToken = e.parameter.token;
+      var reqTeacher = e.parameter.teacher;
+      if (!verifyToken(ss, reqTeacher, reqToken)) {
+        return createJsonResponse({ error: "HATA: Yetkisiz erişim! Geçersiz oturum anahtarı." });
+      }
+    }
+    
+    if (action === "getStudents") return handleGetStudents(ss, e.parameter.className);
+    if (action === "getClassCounts") return handleGetClassCounts(ss);
+    if (action === "getSeatingPlan") return handleGetSeatingPlan(ss, e.parameter.className);
+    if (action === "getTeacherData") return handleGetTeacherData(ss, e.parameter.teacher);
+
+    return createTextResponse("Bilinmeyen GET işlemi: " + action);
+
+  } catch (error) {
+    Logger.log("GET Hatası: " + error.toString());
+    return createJsonResponse({ error: error.toString() });
+  }
+}
+
+
+function handleSendOtp(payload) {
+  var email = String(payload.email || "").trim();
+  if (!email) return createJsonResponse({ success: false, msg: "E-posta adresi boş olamaz." });
+  
+  var cache = CacheService.getScriptCache();
+  var rateKey = "OTP_RATE_" + email.toLowerCase();
+  if (cache.get(rateKey)) {
+    return createJsonResponse({ success: false, msg: "Bu e-posta için kısa süre önce kod gönderildi. Lütfen 1 dakika sonra tekrar deneyin." });
+  }
+
+  var otpCode = makeOtpCode();
+  
+  cache.put("OTP_" + email, otpCode, 600); 
+  cache.put(rateKey, "1", 60);
+  
+  try {
+    MailApp.sendEmail({
+      to: email,
+      subject: "Vefa Poyraz A.L. - Kayıt Doğrulama Kodu",
+      htmlBody: "<div style='font-family:Arial,sans-serif; padding:20px; color:#333; max-width:500px; border:1px solid #ddd; border-radius:10px;'>" +
+                "<h2 style='color:#e02020; text-align:center;'>Vefa Poyraz A.L. Ödev Takip Sistemi</h2>" +
+                "<p style='text-align:center; font-size:15px;'>Sisteme öğretmen kaydınızı tamamlamak için doğrulama kodunuz aşağıdadır:</p>" +
+                "<h1 style='font-size:36px; letter-spacing:6px; background:#f1f3f6; padding:15px; text-align:center; border-radius:10px; border:1px solid #ccc;'>" + otpCode + "</h1>" +
+                "<p style='font-size:12px; color:#777; text-align:center;'>Bu kod <b>10 dakika</b> boyunca geçerlidir. Eğer bu kayıt işlemini siz yapmadıysanız lütfen bu e-postayı dikkate almayınız.</p>" +
+                "</div>"
+    });
+    return createJsonResponse({ success: true, msg: "Kod gönderildi" });
+  } catch (error) {
+    return createJsonResponse({ success: false, msg: "E-posta gönderilemedi. Lütfen geçerli bir e-posta adresi girin." });
+  }
+}
+
+
+function handleLogin(ss, payload) {
+  var user = String(payload.user || "").toLowerCase().trim();
+  var pass = String(payload.pass || "").trim();
+  var deviceId = normalizeDeviceId(payload.deviceId);
+  var deviceLabel = normalizeDeviceLabel(payload.deviceLabel);
+  
+  if (!user || !pass) {
+    return createJsonResponse({ success: false, msg: "Ad soyad ve şifre boş olamaz." });
+  }
+  if (!deviceId) {
+    return createJsonResponse({ success: false, msg: "Cihaz doğrulama bilgisi alınamadı. Lütfen sayfayı yenileyip tekrar deneyin." });
+  }
+
+  var hesapSheet = ensureHesapSheet(ss);
+  
+  var data = hesapSheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    var dbUser = String(data[i][0] || "").toLowerCase().trim();
+    
+    if (dbUser === user && verifyPassword(data[i][2], pass)) {
+      if (cleanStoredPassword(data[i][2]).indexOf("sha256$") !== 0) {
+        var upgradedHash = makePasswordHash(pass);
+        hesapSheet.getRange(i + 1, 3).setValue(upgradedHash);
+        data[i][2] = upgradedHash;
+      }
+
+      var email = String(data[i][5] || "").trim();
+      var trustedDevices = parseTrustedDevices(data[i][6]);
+      if (!isTrustedDevice(trustedDevices, deviceId)) {
+        if (!email) {
+          if (trustedDevices.length > 0) {
+            return createJsonResponse({ success: false, msg: "Bu hesapta e-posta kayıtlı değil. Yeni cihaz girişi için yöneticiden e-posta eklemesini isteyin." });
+          }
+          return issueLoginSuccess(hesapSheet, i + 1, data[i], { deviceId: deviceId, deviceLabel: deviceLabel });
+        }
+
+        var challengeId = Utilities.getUuid();
+        var otpCode = makeOtpCode();
+        var cache = CacheService.getScriptCache();
+        cache.put("LOGIN_DEVICE_CHALLENGE_" + challengeId, JSON.stringify({
+          rowIndex: i + 1,
+          teacher: data[i][0],
+          branch: data[i][1] || "Diger",
+          email: email,
+          deviceId: deviceId,
+          deviceLabel: deviceLabel
+        }), DEVICE_OTP_TTL_SECONDS);
+        cache.put("LOGIN_DEVICE_OTP_" + challengeId, otpCode, DEVICE_OTP_TTL_SECONDS);
+      
+        try {
+          sendDeviceOtpEmail(email, data[i][0], otpCode, deviceLabel);
+        } catch (mailError) {
+          return createJsonResponse({ success: false, msg: "Doğrulama e-postası gönderilemedi. Lütfen e-posta adresini kontrol edin." });
+        }
+
+        return createJsonResponse({
+          success: false,
+          requiresDeviceVerification: true,
+          challengeId: challengeId,
+          maskedEmail: maskEmail(email),
+          msg: "Yeni cihaz doğrulaması gerekli."
+        });
+      }
+
+      return issueLoginSuccess(hesapSheet, i + 1, data[i], { deviceId: deviceId, deviceLabel: deviceLabel });
+    }
+  }
+  return createJsonResponse({ success: false, msg: "Ad soyad veya şifre hatalı." });
+}
+
+function handleVerifyLoginDevice(ss, payload) {
+  var challengeId = String(payload.challengeId || "").trim();
+  var inputOtp = String(payload.otp || "").trim();
+  var deviceId = normalizeDeviceId(payload.deviceId);
+  var deviceLabel = normalizeDeviceLabel(payload.deviceLabel);
+
+  if (!challengeId || !inputOtp || inputOtp.length < 6) {
+    return createJsonResponse({ success: false, msg: "Doğrulama kodu eksik." });
+  }
+
+  var cache = CacheService.getScriptCache();
+  var rawChallenge = cache.get("LOGIN_DEVICE_CHALLENGE_" + challengeId);
+  var savedOtp = cache.get("LOGIN_DEVICE_OTP_" + challengeId);
+  if (!rawChallenge || !savedOtp) {
+    return createJsonResponse({ success: false, msg: "Kodun süresi dolmuş. Lütfen tekrar giriş yapın." });
+  }
+
+  var attemptsKey = "LOGIN_DEVICE_ATTEMPTS_" + challengeId;
+  var attempts = Number(cache.get(attemptsKey) || 0);
+  if (attempts >= 5) {
+    cache.remove("LOGIN_DEVICE_CHALLENGE_" + challengeId);
+    cache.remove("LOGIN_DEVICE_OTP_" + challengeId);
+    return createJsonResponse({ success: false, msg: "Çok fazla hatalı deneme yapıldı. Lütfen tekrar giriş yapın." });
+  }
+
+  if (savedOtp !== inputOtp) {
+    cache.put(attemptsKey, String(attempts + 1), DEVICE_OTP_TTL_SECONDS);
+    return createJsonResponse({ success: false, msg: "Doğrulama kodu hatalı." });
+  }
+
+  var challenge = JSON.parse(rawChallenge);
+  if (deviceId !== normalizeDeviceId(challenge.deviceId)) {
+    return createJsonResponse({ success: false, msg: "Cihaz bilgisi eşleşmedi. Lütfen tekrar giriş yapın." });
+  }
+
+  var hesapSheet = ensureHesapSheet(ss);
+  var rowValues = hesapSheet.getRange(challenge.rowIndex, 1, 1, HESAP_HEADERS.length).getValues()[0];
+  if (String(rowValues[0] || "") !== String(challenge.teacher || "")) {
+    return createJsonResponse({ success: false, msg: "Giriş isteği doğrulanamadı. Lütfen tekrar deneyin." });
+  }
+
+  cache.remove("LOGIN_DEVICE_CHALLENGE_" + challengeId);
+  cache.remove("LOGIN_DEVICE_OTP_" + challengeId);
+  cache.remove(attemptsKey);
+  return issueLoginSuccess(hesapSheet, challenge.rowIndex, rowValues, { deviceId: deviceId, deviceLabel: deviceLabel });
+}
+
+function handleLogout(ss, payload) {
+  var teacherName = String(payload.teacher || "").toLowerCase().trim();
+  var token = String(payload.token || "").trim();
+  if (!teacherName || !token) return createTextResponse("Çıkış bilgisi eksik.");
+
+  var hesapSheet = ss.getSheetByName("Hesap");
+  if (!hesapSheet) return createTextResponse("Çıkış yapıldı.");
+
+  var data = hesapSheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0] || "").toLowerCase().trim() === teacherName) {
+      var tokens = parseTokenRecords(data[i][4]).filter(function(item) {
+        return String(item.token) !== token && isTokenFresh(item);
+      });
+      hesapSheet.getRange(i + 1, 5).setValue(JSON.stringify(tokens));
+      CacheService.getScriptCache().remove("token_" + String(payload.teacher).replace(/\s+/g, '') + "_" + token);
+      return createTextResponse("Çıkış yapıldı.");
+    }
+  }
+  return createTextResponse("Çıkış yapıldı.");
+}
+
+function handleRegister(ss, payload) {
+  var hesapSheet = ensureHesapSheet(ss);
+  
+  var fullName = String(payload.fullName || "").trim();
+  var pass = String(payload.pass || "").trim();
+  var branch = String(payload.branch || "Diger");
+  var email = String(payload.email || "").trim(); 
+  var inputOtp = String(payload.otp || "").trim(); 
+  var initialDevices = addTrustedDevice([], payload.deviceId, payload.deviceLabel);
+  
+  if (!fullName || !pass || !email) return createTextResponse("Hata: Ad soyad, e-posta ve şifre zorunludur.");
+  if (pass.length < 4) return createTextResponse("Hata: Şifre en az 4 karakter olmalıdır.");
+  
+  var cache = CacheService.getScriptCache();
+  var savedOtp = cache.get("OTP_" + email); 
+  
+  if (!savedOtp || savedOtp !== inputOtp) {
+    return createTextResponse("Hata: Doğrulama kodu hatalı veya süresi dolmuş. Lütfen tekrar deneyin.");
+  }
+ 
+  var existing = hesapSheet.getDataRange().getValues();
+  for (var j = 1; j < existing.length; j++) {
+    if (String(existing[j][0] || "").toLowerCase().trim() === fullName.toLowerCase()) {
+      return createTextResponse("Hata: Bu isimde bir öğretmen zaten kayıtlı.");
+    }
+  }
+  
+  hesapSheet.appendRow([fullName, branch, makePasswordHash(pass), new Date().toLocaleString('tr-TR'), "", email, JSON.stringify(initialDevices), ""]);
+  hesapSheet.autoResizeColumns(1, HESAP_HEADERS.length);
+  
+  cache.remove("OTP_" + email);
+  
+  return createTextResponse("Başarılı");
+}
+
+function handleAddStudent(ss, payload) {
+  var studentSheet = ss.getSheetByName("Students");
+  if (!studentSheet) {
+    studentSheet = ss.insertSheet("Students");
+    studentSheet.appendRow(["Öğrenci No", "Sınıf", "Ad", "Soyad", "Cinsiyet"]);
+    studentSheet.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#e02020").setFontColor("#ffffff");
+  }
+  
+  var no = String(payload.no || "").trim();
+  var className = String(payload.className || "").trim();
+  var ad = String(payload.ad || "").trim().toUpperCase();
+  var soyad = String(payload.soyad || "").trim().toUpperCase();
+  
+  if (!no || !className || !ad || !soyad) return createTextResponse("Hata: Tüm alanlar zorunludur.");
+  
+  var cinsiyet = "Belirsiz"; 
+  
+  studentSheet.appendRow([no, className, ad, soyad, cinsiyet]);
+  sortStudents(studentSheet);
+  studentSheet.autoResizeColumns(1, 5);
+  var cleanClass = className.replace(/\s+/g, '').toUpperCase();
+  var cache = CacheService.getScriptCache();
+  cache.remove("students_" + cleanClass);
+  cache.remove("classCounts");
+  return createTextResponse("Öğrenci eklendi");
+}
+
+function handleDeleteStudent(ss, payload) {
+  var studentSheet = ss.getSheetByName("Students");
+  if (!studentSheet) return createTextResponse("Öğrenci tablosu bulunamadı");
+  
+  var data = studentSheet.getDataRange().getValues();
+  var className = String(payload.className || "").trim().toUpperCase().replace(/\s+/g, '');
+  var no = String(payload.no || "").trim();
+  
+  if (!className || !no) return createTextResponse("Hata: Sınıf adı ve numara zorunludur.");
+  
+  for (var i = 1; i < data.length; i++) {
+    var rowClass = String(data[i][1] || "").replace(/\s+/g, '').toUpperCase();
+    var rowNo = String(data[i][0] || "").trim();
+    if (rowClass === className && rowNo === no) {
+      var cache = CacheService.getScriptCache();
+      cache.remove("students_" + className);
+      cache.remove("classCounts");
+      studentSheet.deleteRow(i + 1);
+      return createTextResponse("Öğrenci silindi");
+    }
+  }
+  return createTextResponse("Öğrenci bulunamadı");
+}
+
+function handleSaveRecord(ss, payload) {
+  var kayitSheet = ss.getSheetByName("Kayitlar");
+  if (!kayitSheet) {
+    kayitSheet = ss.insertSheet("Kayitlar");
+    kayitSheet.appendRow(["Tarih", "Saat", "Öğretmen", "Sınıf", "Liste Adı", "Öğrenci No", "Durum", "Net Puan"]);
+    kayitSheet.getRange(1, 1, 1, 8).setFontWeight("bold").setBackground("#e02020").setFontColor("#ffffff").setHorizontalAlignment("center");
+  }
+  
+  var rowsToAppend = [];
+  var students = payload.students || [];
+  
+  students.forEach(function(s) {
+    rowsToAppend.push([
+      String(payload.date || ""),
+      String(payload.time || ""),
+      String(payload.teacher || ""),
+      String(payload.className || ""),
+      String(payload.hwName || ""),
+      String(s.no || ""),
+      String(s.status || ""),
+      s.score || 0
+    ]);
+  });
+  
+  if (rowsToAppend.length > 0) {
+    kayitSheet.getRange(kayitSheet.getLastRow() + 1, 1, rowsToAppend.length, 8).setValues(rowsToAppend);
+    kayitSheet.autoResizeColumns(1, 8);
+    return createTextResponse("Başarılı! " + rowsToAppend.length + " performans kaydı işlendi.");
+  }
+  return createTextResponse("HATA: Kaydedilecek veri yok.");
+}
+
+function handleSaveTeacherData(ss, payload) {
+  var tdSheet = ss.getSheetByName("TeacherData");
+  if (!tdSheet) {
+    tdSheet = ss.insertSheet("TeacherData");
+    var headers = ["Öğretmen"];
+    for (var h = 1; h <= MAX_JSON_CHUNKS; h++) headers.push("JSON_Parca" + h);
+    tdSheet.appendRow(headers);
+    tdSheet.getRange(1, 1, 1, MAX_JSON_CHUNKS + 1).setFontWeight("bold").setBackground("#e02020").setFontColor("#ffffff");
+  }
+  
+  var teacherName = String(payload.teacher || "").trim();
+  var fullJson = payload.jsonData || "";
+  if (!teacherName) return createTextResponse("Hata: Öğretmen adı boş olamaz.");
+  
+  var data = tdSheet.getDataRange().getValues();
+  var foundRow = -1;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0] || "").trim() === teacherName) { foundRow = i + 1; break; }
+  }
+  
+  var chunks = [];
+  for (var c = 0; c < fullJson.length; c += MAX_JSON_CHUNK_SIZE) chunks.push(fullJson.substring(c, c + MAX_JSON_CHUNK_SIZE));
+  if (chunks.length > MAX_JSON_CHUNKS) return createTextResponse("HATA: Veri çok büyük (" + chunks.length + " parça, max " + MAX_JSON_CHUNKS + ")");
+  while (chunks.length < MAX_JSON_CHUNKS) chunks.push("");
+  
+  var rowData = [teacherName].concat(chunks);
+  if (foundRow > -1) {
+    tdSheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+  } else {
+    tdSheet.appendRow(rowData);
+  }
+  return createTextResponse("Bulut profili güncellendi.");
+}
+
+function handleBulkImport(ss, payload) {
+  var studentSheet = ss.getSheetByName("Students");
+  if (!studentSheet) {
+    studentSheet = ss.insertSheet("Students");
+    studentSheet.appendRow(["Öğrenci No", "Sınıf", "Ad", "Soyad", "Cinsiyet"]);
+    studentSheet.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#e02020").setFontColor("#ffffff");
+  }
+  
+  var allStudents = [];
+  var lastRow = studentSheet.getLastRow();
+  
+  if (lastRow > 1) {
+    var existingData = studentSheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    existingData.forEach(function(row) {
+      allStudents.push({ no: row[0], className: String(row[1]), ad: row[2], soyad: row[3], cinsiyet: row[4] });
+    });
+  }
+  
+  var importData = payload.data || [];
+  importData.forEach(function(cls) {
+    cls.students.forEach(function(s) {
+      allStudents.push({ no: s.no || "", className: String(cls.className), ad: s.ad || "", soyad: s.soyad || "", cinsiyet: s.cinsiyet || "Belirsiz" });
+    });
+  });
+  
+  var uniqueMap = {};
+  allStudents.forEach(function(s) {
+    var key = String(s.className).trim() + "_" + String(s.no).trim();
+    uniqueMap[key] = s;
+  });
+  
+  var finalStudents = Object.keys(uniqueMap).map(function(k) { return uniqueMap[k]; });
+  var outputData = finalStudents.map(function(s) { return [s.no, s.className, s.ad, s.soyad, s.cinsiyet]; });
+  
+  if (lastRow > 0) studentSheet.getRange(1, 1, lastRow, 5).clearContent();
+  studentSheet.getRange(1, 1, 1, 5).setValues([["Öğrenci No", "Sınıf", "Ad", "Soyad", "Cinsiyet"]]);
+  studentSheet.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#e02020").setFontColor("#ffffff");
+  
+  if (outputData.length > 0) {
+    studentSheet.getRange(2, 1, outputData.length, 5).setValues(outputData);
+    sortStudents(studentSheet);
+  }
+  CacheService.getScriptCache().remove("classCounts");
+  return createTextResponse("Başarı: " + finalStudents.length + " öğrenci aktarıldı");
+}
+
+function handleGetStudents(ss, className) {
+  var cleanClassName = String(className || "").replace(/[\s\/\-\.]/g, '').toUpperCase();
+  if (!cleanClassName) return createJsonResponse([]);
+
+  var studentSheet = ss.getSheetByName("Students");
+  if (!studentSheet) return createJsonResponse([]);
+  
+  var data = studentSheet.getDataRange().getValues();
+  var students = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (row[1]) {
+      var rowClass = String(row[1]).replace(/[\s\/\-\.]/g, '').toUpperCase();
+      if (rowClass === cleanClassName) {
+        students.push({ 
+          no: row[0], 
+          className: row[1], 
+          ad: row[2], 
+          soyad: row[3], 
+          cinsiyet: row[4] 
+        });
+      }
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify(students)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleGetClassCounts(ss) {
+  var cache = CacheService.getScriptCache();
+  var cachedCounts = cache.get("classCounts");
+  
+  if (cachedCounts) {
+    return ContentService.createTextOutput(cachedCounts).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  var studentSheet = ss.getSheetByName("Students");
+  if (!studentSheet) return createJsonResponse({});
+  
+  var data = studentSheet.getDataRange().getValues();
+  var counts = {};
+  
+  for (var i = 1; i < data.length; i++) {
+    var cName = String(data[i][1] || "").replace(/\s+/g, '').toUpperCase();
+    if (cName) counts[cName] = (counts[cName] || 0) + 1;
+  }
+  
+  var jsonResult = JSON.stringify(counts);
+  cache.put("classCounts", jsonResult, 3600);
+  
+  return ContentService.createTextOutput(jsonResult).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleGetTeacherData(ss, teacher) {
+  var tdSheet = ss.getSheetByName("TeacherData");
+  if (!tdSheet) return ContentService.createTextOutput('null').setMimeType(ContentService.MimeType.JSON);
+  
+  var teacherName = String(teacher || "").trim();
+  var data = tdSheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0] || "").trim() === teacherName) {
+      var fullJson = "";
+      for (var j = 1; j < data[i].length; j++) if (data[i][j]) fullJson += data[i][j];
+      return ContentService.createTextOutput(fullJson || 'null').setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  return ContentService.createTextOutput('null').setMimeType(ContentService.MimeType.JSON);
+}
+
+function sortStudents(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return;
+  var dataRange = sheet.getRange(2, 1, lastRow - 1, 5);
+  var data = dataRange.getValues();
+  data.sort(function(a, b) {
+    if (String(a[1]) !== String(b[1])) return String(a[1]).localeCompare(String(b[1]), 'tr');
+    return (parseInt(a[0]) || 0) - (parseInt(b[0]) || 0);
+  });
+  dataRange.setValues(data);
+}
+
+function createJsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function createTextResponse(text) {
+  return ContentService.createTextOutput(text).setMimeType(ContentService.MimeType.TEXT);
+}
+
+function handleSaveSeatingPlan(ss, payload) {
+  var sheet = ss.getSheetByName("SeatingPlans");
+  if (!sheet) {
+    sheet = ss.insertSheet("SeatingPlans");
+    sheet.appendRow(["Sınıf", "PlanJSON", "Son Güncelleyen", "Tarih"]);
+    sheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#e02020").setFontColor("#ffffff");
+  }
+  var className = String(payload.className || "").trim().toUpperCase().replace(/\s+/g, '');
+  var planData = payload.planData || "{}";
+  var teacherName = String(payload.teacher || "");
+
+  var data = sheet.getDataRange().getValues();
+  var found = false;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === className) {
+      sheet.getRange(i + 1, 2, 1, 3).setValues([[planData, teacherName, new Date().toLocaleString('tr-TR')]]);
+      found = true; break;
+    }
+  }
+  if (!found) sheet.appendRow([className, planData, teacherName, new Date().toLocaleString('tr-TR')]);
+  return createTextResponse("Oturma planı kaydedildi.");
+}
+
+function handleGetSeatingPlan(ss, className) {
+  var sheet = ss.getSheetByName("SeatingPlans");
+  if (!sheet) return createJsonResponse({});
+  var cleanClassName = String(className || "").trim().toUpperCase().replace(/\s+/g, '');
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === cleanClassName) {
+      try { return createJsonResponse(JSON.parse(data[i][1])); } catch(e) { return createJsonResponse({}); }
+    }
+  }
+  return createJsonResponse({});
+}
+
+function handleSaveHomework(ss, payload) {
+  var sheet = ss.getSheetByName("Odevler");
+  if (!sheet) {
+    sheet = ss.insertSheet("Odevler");
+    sheet.appendRow(["Kayıt Tarihi", "Öğretmen", "Sınıf", "Ödev Adı", "Öğrenci No", "Ad Soyad", "Durum"]);
+    sheet.getRange(1, 1, 1, 7).setFontWeight("bold").setBackground("#e02020").setFontColor("#ffffff");
+  }
+
+  var records = payload.records || [];
+  var rowsToAppend = [];
+  var timestamp = new Date().toLocaleString('tr-TR');
+
+  records.forEach(function(r) {
+    rowsToAppend.push([timestamp, payload.teacher, payload.className, r.hwName, r.no, r.adSoyad, r.status]);
+  });
+
+  if (rowsToAppend.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAppend.length, 7).setValues(rowsToAppend);
+    sheet.autoResizeColumns(1, 7);
+  }
+  return createTextResponse("Ödevler başarıyla kaydedildi.");
+}
+
+function handleSavePerformans(ss, payload) {
+  var sheet = ss.getSheetByName("PerformansNotlari");
+  
+  if (!sheet) {
+    sheet = ss.insertSheet("PerformansNotlari");
+    sheet.appendRow(["Kayıt Tarihi", "Öğretmen", "Sınıf", "Ders Adı", "Kaçıncı Performans", "Öğrenci No", "Ad Soyad", "Puan"]);
+    sheet.getRange(1, 1, 1, 8)
+      .setFontWeight("bold")
+      .setBackground("#e02020")
+      .setFontColor("#ffffff")
+      .setHorizontalAlignment("center")
+      .setVerticalAlignment("middle");
+  }
+
+  var records = payload.records || [];
+  if (records.length === 0) {
+    return createTextResponse("Kaydedilecek performans verisi yok.");
+  }
+
+  var rowsToAppend = [];
+  var timestamp = new Date().toLocaleString('tr-TR');
+  var teacher = String(payload.teacher || "");
+  var className = String(payload.className || "");
+  var dersAdi = String(payload.dersAdi || "");
+  var perfNo = payload.perfNo + ". Performans";
+
+  records.forEach(function(r) {
+    rowsToAppend.push([
+      timestamp, 
+      teacher, 
+      className, 
+      dersAdi, 
+      perfNo, 
+      String(r.no || ""), 
+      String(r.adSoyad || ""), 
+      r.score
+    ]);
+  });
+
+  if (rowsToAppend.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAppend.length, 8).setValues(rowsToAppend);
+    sheet.autoResizeColumns(1, 8); 
+  }
+
+  return createTextResponse("Performans notları başarıyla kaydedildi.");
+}
+
+
+
+function handleForgotPasswordSendOtp(ss, payload) {
+  var userOrEmail = String(payload.userOrEmail || "").trim();
+  if (!userOrEmail) {
+    return createJsonResponse({ success: false, msg: "Ad soyad veya e-posta adresi boş olamaz." });
+  }
+
+  var hesapSheet = ensureHesapSheet(ss);
+  var data = hesapSheet.getDataRange().getValues();
+  var foundRow = -1;
+  var email = "";
+  var fullName = "";
+
+  for (var i = 1; i < data.length; i++) {
+    var dbUser = String(data[i][0] || "").toLowerCase().trim();
+    var dbEmail = String(data[i][5] || "").toLowerCase().trim();
+    var targetInput = userOrEmail.toLowerCase().trim();
+
+    if (dbUser === targetInput || dbEmail === targetInput) {
+      foundRow = i + 1;
+      fullName = data[i][0];
+      email = String(data[i][5] || "").trim();
+      break;
+    }
+  }
+
+  if (foundRow === -1) {
+    return createJsonResponse({ success: false, msg: "Bu ad soyad veya e-posta ile kayıtlı öğretmen bulunamadı." });
+  }
+
+  if (!email) {
+    return createJsonResponse({ success: false, msg: "Bu hesaba tanımlanmış bir e-posta adresi bulunmamaktadır. Şifre sıfırlama işlemi için lütfen yöneticinizle görüşün." });
+  }
+
+  var cache = CacheService.getScriptCache();
+  var rateKey = "RESET_PASSWORD_RATE_" + email.toLowerCase();
+  if (cache.get(rateKey)) {
+    return createJsonResponse({ success: false, msg: "Çok sık kod istiyorsunuz. Lütfen 1 dakika sonra tekrar deneyin." });
+  }
+
+  var otpCode = makeOtpCode();
+  cache.put("RESET_PASSWORD_OTP_" + email.toLowerCase(), otpCode, 600); // 10 minutes
+  cache.put(rateKey, "1", 60); // 1 minute limit
+
+  try {
+    MailApp.sendEmail({
+      to: email,
+      subject: "Vefa Poyraz A.L. - Şifre Sıfırlama Kodu",
+      htmlBody: "<div style='font-family:Arial,sans-serif; padding:20px; color:#333; max-width:500px; border:1px solid #ddd; border-radius:10px;'>" +
+                "<h2 style='color:#e02020; text-align:center;'>Vefa Poyraz A.L. Ödev Takip Sistemi</h2>" +
+                "<p>Merhaba <b>" + escapeHtml(fullName) + "</b>,</p>" +
+                "<p style='font-size:15px;'>Hesabınızın şifresini sıfırlamak için doğrulama kodunuz aşağıdadır:</p>" +
+                "<h1 style='font-size:36px; letter-spacing:6px; background:#f1f3f6; padding:15px; text-align:center; border-radius:10px; border:1px solid #ccc;'>" + otpCode + "</h1>" +
+                "<p style='font-size:12px; color:#777; text-align:center;'>Bu kod <b>10 dakika</b> boyunca geçerlidir. Eğer bu işlemi siz yapmadıysanız lütfen bu e-postayı dikkate almayınız.</p>" +
+                "</div>"
+    });
+    return createJsonResponse({ success: true, maskedEmail: maskEmail(email), email: email });
+  } catch (error) {
+    return createJsonResponse({ success: false, msg: "E-posta gönderilemedi: " + error.toString() });
+  }
+}
+
+function handleForgotPasswordVerifyAndReset(ss, payload) {
+  var email = String(payload.email || "").trim();
+  var otpCode = String(payload.otp || "").trim();
+  var newPass = String(payload.newPass || "").trim();
+  var deviceId = normalizeDeviceId(payload.deviceId);
+  var deviceLabel = normalizeDeviceLabel(payload.deviceLabel);
+
+  if (!email || !otpCode || !newPass) {
+    return createJsonResponse({ success: false, msg: "Eksik bilgi gönderildi." });
+  }
+  if (newPass.length < 4) {
+    return createJsonResponse({ success: false, msg: "Şifre en az 4 karakter olmalıdır." });
+  }
+
+  var cache = CacheService.getScriptCache();
+  var savedOtp = cache.get("RESET_PASSWORD_OTP_" + email.toLowerCase());
+
+  if (!savedOtp || savedOtp !== otpCode) {
+    return createJsonResponse({ success: false, msg: "Doğrulama kodu hatalı veya süresi dolmuş." });
+  }
+
+  var hesapSheet = ensureHesapSheet(ss);
+  var data = hesapSheet.getDataRange().getValues();
+  var foundRow = -1;
+
+  for (var i = 1; i < data.length; i++) {
+    var dbEmail = String(data[i][5] || "").toLowerCase().trim();
+    if (dbEmail === email.toLowerCase()) {
+      foundRow = i + 1;
+      break;
+    }
+  }
+
+  if (foundRow === -1) {
+    return createJsonResponse({ success: false, msg: "Hesap bulunamadı." });
+  }
+
+  // 1. Şifreyi güncelle (hashleyerek)
+  var hashed = makePasswordHash(newPass);
+  hesapSheet.getRange(foundRow, 3).setValue(hashed);
+
+  // 2. Cache'i temizle
+  cache.remove("RESET_PASSWORD_OTP_" + email.toLowerCase());
+
+  // 3. Otomatik giriş yapıp oturum token'ı verelim (issueLoginSuccess)
+  var updatedRowValues = hesapSheet.getRange(foundRow, 1, 1, HESAP_HEADERS.length).getValues()[0];
+  return issueLoginSuccess(hesapSheet, foundRow, updatedRowValues, { deviceId: deviceId, deviceLabel: deviceLabel });
+}

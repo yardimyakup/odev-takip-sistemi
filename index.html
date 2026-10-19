@@ -4924,28 +4924,6 @@
   </div>
 
 
-  <div class="overlay center" id="overlay-yoklama-confirm">
-    <div class="sheet centered" style="max-width:360px;">
-      <div style="font-size:40px;margin-bottom:10px;">📋</div>
-      <div class="sheet-title" style="justify-content:center;display:flex;margin-bottom:8px;">Yoklamayı Gönder</div>
-      <div style="font-size:13px;color:var(--gray-500);font-weight:600;margin-bottom:15px;" id="yoklama-onay-bilgi">...
-      </div>
-
-      <div
-        style="background:var(--gray-50); border:1px solid var(--border); border-radius:var(--r-sm); padding:10px; max-height:150px; overflow-y:auto; text-align:left; margin-bottom:20px;">
-        <div style="font-size:11px; font-weight:800; color:var(--red-score); margin-bottom:8px;">GELMEYEN ÖĞRENCİLER:
-        </div>
-        <ul id="yoklama-onay-liste"
-          style="list-style:none; font-size:13px; font-weight:700; color:var(--text); padding-left:5px; line-height:1.6;">
-        </ul>
-      </div>
-
-      <div class="sheet-actions">
-        <button class="btn-full btn-full-gray" onclick="closeOverlay('overlay-yoklama-confirm')">İptal</button>
-        <button class="btn-full btn-full-red" onclick="submitYoklama()" id="btn-yoklama-submit">Evet, Gönder</button>
-      </div>
-    </div>
-  </div>
 
 
   <div class="overlay" id="overlay-hw-edit">
@@ -5180,7 +5158,7 @@
     // ════════════════════════════════
     // SABITLER
     // ════════════════════════════════
-    const API_URL = "https://script.google.com/macros/s/AKfycby1gnbbTC5GD81DJQwZWcKMOEHpiu_Hjll5PDheuazPwSiEWu6mahEeHTfM1-_EzlCe/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxKWjU_TmcQpSCD3AJIJhZ-6fJ-NvAve5jAT3OsaFp89Rnxz2o1u8XmK7Mu-6SmEIVN/exec";
     const LANG_BRANCHES = ['Edebiyat', 'Ingilizce', 'Fransizca'];
     const BRANCH_LABELS = { Edebiyat: 'T\u00fcrk Dili ve Edebiyat\u0131', Ingilizce: '\u0130ngilizce', Fransizca: 'Frans\u0131zca' };
     const STORAGE_KEY = 'vpAL3';
@@ -5343,12 +5321,6 @@
       applyTheme();
 
       if (state.teacher) {
-        // 🚀 EĞER VELİ HOCA SİSTEMDEYKEN ANA SAYFAYI AÇARSA DİREKT DİN SAYFASINA AT 🚀
-        if (state.teacher === "Veli Duran Yalçın") {
-          window.location.href = "din.html";
-          return; // Kodu burada durdur
-        }
-
         showDashboard();
         renderDashboard();
 
@@ -5457,11 +5429,7 @@
       await loadTeacherProfile(state.teacher);
       notify('Giriş başarılı! Hoş geldiniz 🎉', 'success');
 
-      if (state.teacher === "Veli Duran Yalçın") {
-        window.location.href = "din.html";
-      } else {
-        showDashboard();
-      }
+      showDashboard();
     }
 
     async function doLogin() {
